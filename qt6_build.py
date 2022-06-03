@@ -434,7 +434,7 @@ else:
 		if subprocess.call([os.path.join(qt_source_path, "icu", "icu4c", "source", "configure"),
 			"--disable-draft", "--disable-extras", "--disable-icuio",
 			"--disable-layoutex", "--disable-tools", "--disable-tests",
-			"--disable-samples", "--prefix=" + install_path],
+			"--disable-samples", "--prefix=" + str(install_path)],
 			cwd=os.path.join(qt_source_path, "icu", "icu4c", "source")) != 0:
 			print("Failed to configure")
 			sys.exit(1)
@@ -449,7 +449,7 @@ else:
 			print("Qt failed to install")
 			sys.exit(1)
 
-		os.environ["ICU_PREFIX"] = install_path
+		os.environ["ICU_PREFIX"] = str(install_path)
 
 		build_opts += ['-bundled-xcb-xinput']
 
@@ -525,7 +525,7 @@ if sys.platform == 'linux' and llvm_dir:
 	# Newer versions of PySide don't link to libclang in a way that works after the build, copy over
 	# the correct version of libclang
 	for f in glob.glob(os.path.join(llvm_dir, "lib", "libclang.so*")):
-		shutil.copy(f, os.path.join(install_path, "site-packages", "shiboken6_generator", os.path.basename(f)), follow_symlinks=False)
+		shutil.copy(f, os.path.join(pyside_install_path, "site-packages", "shiboken6_generator", os.path.basename(f)), follow_symlinks=False)
 
 # Add PySide installer to place it into Python path
 shutil.copy(os.path.join(base_dir, "install_pyside_pth.py"), os.path.join(install_path, "install_pyside_pth.py"))
@@ -580,7 +580,7 @@ elif sys.platform == 'linux':
 	os.mkdir(os.path.join(bundle_path, "PySide6"))
 
 	for plugin_type in plugin_types:
-		for f in glob.glob(os.path.join(install_path, "plugins", plugin_type, "*.dylib")):
+		for f in glob.glob(os.path.join(install_path, "plugins", plugin_type, "*.so")):
 			target = os.path.join(bundle_path, plugin_type, os.path.basename(f))
 			shutil.copy(f, target)
 			if subprocess.call(["patchelf", "--set-rpath", "$ORIGIN/../..", target]) != 0:
