@@ -290,13 +290,13 @@ if not args.no_clone:
 
 	for patch in qt_patches:
 		print(f"\nApplying patch {patch}...")
-		if subprocess.call(["git", "apply", os.path.abspath(patch)], cwd=qt_source_path) != 0:
+		if subprocess.call(["patch", "-p1", "-i", os.path.abspath(patch)], cwd=qt_source_path) != 0:
 			print("Failed to patch source")
 			sys.exit(1)
 
 	if args.patch:
 		print("\nApplying user provided patch...")
-		if subprocess.call(["git", "apply", os.path.abspath(args.patch)], cwd=qt_source_path) != 0:
+		if subprocess.call(["patch", "-p1", "-i", os.path.abspath(args.patch)], cwd=qt_source_path) != 0:
 			print("Failed to patch source")
 			sys.exit(1)
 
@@ -326,13 +326,13 @@ if not args.no_clone:
 
 	for patch in pyside_patches:
 		print(f"\nApplying patch {patch}...")
-		if subprocess.call(["git", "apply", os.path.abspath(patch)], cwd=pyside_source_path) != 0:
+		if subprocess.call(["patch", "-p1", "-i", os.path.abspath(patch)], cwd=pyside_source_path) != 0:
 			print("Failed to patch source")
 			sys.exit(1)
 
 	if args.patch:
 		print("\nApplying patch...")
-		if subprocess.call(["git", "apply", os.path.abspath(args.patch)], cwd=pyside_source_path) != 0:
+		if subprocess.call(["patch", "-p1", "-i", os.path.abspath(args.patch)], cwd=pyside_source_path) != 0:
 			print("Failed to patch source")
 			sys.exit(1)
 
