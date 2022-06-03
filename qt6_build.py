@@ -36,16 +36,11 @@ def keychain_unlocker():
     return False
 
 
-def mac_sign(path, deep = True, force = False):
+def mac_sign(path):
     if not keychain_unlocker():
         return False
 
-    args = ["codesign"]
-    if deep:
-        args += ["--deep"]
-    if force:
-        args += ["-f"]
-    args += ["--options", "runtime", "--timestamp", "-s", "Developer ID"]
+    args = ["codesign", "-f", "--options", "runtime", "--timestamp", "-s", "Developer ID"]
     if path.endswith(".dmg"):
         args.append(path)
     else:
@@ -610,23 +605,11 @@ elif sys.platform == 'linux':
 
 if args.sign:
 	if sys.platform == 'darwin':
-		# Look for all Mach-O files or frameworks in the installation
+		# Sign all Mach-O files in the installation
 		for root, dirs, files in os.walk(install_path):
-			for dir in dirs:
-				if ".framework" in dir or ".app" in dir:
-					dir_path = os.path.join(root, dir)
-
-					if not mac_sign(dir_path, True, True):
-						print(f"Failed to sign {dir_path}")
-						sys.exit(1)
-
 			for file in files:
 				file_path = os.path.join(root, file)
 				if not os.access(file_path, os.X_OK):
-					continue
-				if ".framework" in file_path or ".app" in file_path:
-					# Don't individually sign files within the framework/app, instead sign
-					# the framework/app as a whole
 					continue
 
 				# Check for Mach-O signature
@@ -634,9 +617,19 @@ if args.sign:
 				if header != b"\xca\xfe\xba\xbe" and header != b"\xcf\xfa\xed\xfe":
 					continue
 
-				if not mac_sign(file_path, False, True):
+				if not mac_sign(file_path):
 					print(f"Failed to sign {file_path}")
 					sys.exit(1)
+
+		# Sign all frameworks and applications in the installation
+		for root, dirs, files in os.walk(install_path):
+			for dir in dirs:
+				if ".framework" in dir or ".app" in dir:
+					dir_path = os.path.join(root, dir)
+
+					if not mac_sign(dir_path):
+						print(f"Failed to sign {dir_path}")
+						sys.exit(1)
 	elif sys.platform.startswith("win"):
 		# Look for all exe/dll files in the installation
 		for root, dirs, files in os.walk(install_path):
