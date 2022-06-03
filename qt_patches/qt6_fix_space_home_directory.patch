@@ -1,0 +1,13 @@
+diff --git a/configure.bat b/configure.bat
+index 500d627f..dd48ba05 100644
+--- a/configure.bat
++++ b/configure.bat
+@@ -40,7 +40,7 @@ echo + cd qtbase
+ cd qtbase || exit /b 1
+
+ echo + %configure% -top-level %*
+-call %configure% -top-level %*
++call "%configure%" -top-level %*
+ set err=%errorlevel%
+
+ cd ..

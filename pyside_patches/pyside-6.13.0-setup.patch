@@ -1,0 +1,15 @@
+diff --git a/build_scripts/wheel_utils.py b/build_scripts/wheel_utils.py
+index cea45b107..9e856e599 100644
+--- a/build_scripts/wheel_utils.py
++++ b/build_scripts/wheel_utils.py
+@@ -118,7 +118,9 @@ def macos_pyside_min_deployment_target():
+     If setup.py value is provided, that takes precedence.
+     Otherwise use the maximum of the above mentioned two values.
+     """
+-    python_target = get_config_var('MACOSX_DEPLOYMENT_TARGET') or None
++    # Workaround for homebrew specifying 12 as minimum target for python3
++    #python_target = get_config_var('MACOSX_DEPLOYMENT_TARGET') or None
++    python_target = None
+     qt_target = macos_qt_min_deployment_target()
+     setup_target = OPTION["MACOS_DEPLOYMENT_TARGET"]
+

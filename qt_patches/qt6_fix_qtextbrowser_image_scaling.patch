@@ -1,0 +1,12 @@
+diff --git a/qtbase/src/gui/text/qtextimagehandler.cpp b/qtbase/src/gui/text/qtextimagehandler.cpp
+index 290aa256cb..3bc18eaa96 100644
+--- a/qtbase/src/gui/text/qtextimagehandler.cpp
++++ b/qtbase/src/gui/text/qtextimagehandler.cpp
+@@ -217,6 +217,7 @@ void QTextImageHandler::drawObject(QPainter *p, const QRectF &rect, QTextDocumen
+     Q_UNUSED(posInDocument);
+         const QTextImageFormat imageFormat = format.toImageFormat();
+ 
++    p->setRenderHint(QPainter::SmoothPixmapTransform);
+     if (QCoreApplication::instance()->thread() != QThread::currentThread()) {
+         const QImage image = getImage(doc, imageFormat, p->device()->devicePixelRatio());
+         p->drawImage(rect, image, image.rect());
