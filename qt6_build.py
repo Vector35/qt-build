@@ -641,7 +641,7 @@ if args.sign:
 		# Look for all exe/dll files in the installation
 		for root, dirs, files in os.walk(install_path):
 			for file in files:
-				if file.endswith(".exe") or file.endswith(".dll"):
+				if file.endswith(".exe") or file.endswith(".dll") or file.endswith(".pyd"):
 					file_path = os.path.join(root, file)
 					if not signWindowsFiles(file_path):
 						print(f"Failed to sign {file_path}")
