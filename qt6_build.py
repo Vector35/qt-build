@@ -24,7 +24,7 @@ def remove_dir(path):
 		# Windows being Windows. Not doing this as a recursive delete from the shell will yield
 		# "access denied" errors. Even deleting the individual files from the terminal does this.
 		# Somehow, deleting this way works correctly.
-		subprocess.call('rmdir /S /Q "' + path + '"', shell=True)
+		subprocess.call('rmdir /S /Q "' + str(path) + '"', shell=True)
 	else:
 		shutil.rmtree(path)
 
@@ -167,7 +167,10 @@ else:
 install_path = qt_dir / "install" / "Qt" / qt_version_dir / compiler
 qt_patches_path = base_dir / 'qt_patches'
 pyside_patches_path = base_dir / 'pyside_patches'
-qtpaths = install_path / 'bin' / 'qtpaths'
+if sys.platform == 'win32':
+	qtpaths = install_path / 'bin' / 'qtpaths.exe'
+else:
+	qtpaths = install_path / 'bin' / 'qtpaths'
 pyside_source_path = source_path / "pyside-setup"
 pyside_build_path = source_path / "pyside-build"
 pyside_install_path = install_path / "pyside"
@@ -234,7 +237,7 @@ if args.clean:
 		(base_dir / "CMakeCache.txt").unlink()
 
 
-if install_path.exists():
+if args.install and user_qt_parent_path.exists():
 	if args.prompt and input("\nAn install already exists at the target location. Overwrite? ") != "y":
 		print("Aborted")
 		sys.exit(1)
@@ -499,6 +502,8 @@ else:
 
 print("\nBuilding Python 3 bindings...")
 os.environ["CMAKE_PREFIX_PATH"] = str(install_path / "lib" / "cmake")
+if sys.platform == 'win32':
+	os.environ["PATH"] = f'{str(install_path / "bin")};{os.environ["PATH"]}'
 if os.path.exists(pyside_build_path):
 	remove_dir(pyside_build_path)
 shutil.copytree(pyside_source_path, pyside_build_path)
