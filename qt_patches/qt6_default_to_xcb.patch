@@ -1,0 +1,13 @@
+diff --git a/qtbase/src/gui/kernel/qguiapplication.cpp b/qtbase/src/gui/kernel/qguiapplication.cpp
+index 4c819e0915..6070a01334 100644
+--- a/qtbase/src/gui/kernel/qguiapplication.cpp
++++ b/qtbase/src/gui/kernel/qguiapplication.cpp
+@@ -1409,7 +1409,7 @@ void QGuiApplicationPrivate::createPlatformIntegration()
+     const bool defaultIsWayland = !defaultIsXcb && platformPluginBase.startsWith("wayland");
+     const QByteArray waylandPlatformName = defaultIsWayland ? platformName : "wayland";
+     if (hasWaylandDisplay || isWaylandSessionType) {
+-        preferredPlatformOrder.prepend(waylandPlatformName);
++        preferredPlatformOrder.append(waylandPlatformName);
+ 
+         if (defaultIsWayland)
+             platformName.clear();
