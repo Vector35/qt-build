@@ -75,6 +75,8 @@ parser.add_argument("--debug", help="build a debug configuration", action="store
 parser.add_argument("--universal", help="build for both x86_64 and arm64 (arm64 Mac host only)", action="store_true")
 parser.add_argument("--mirror", help="use source mirror", action="store")
 parser.add_argument("--sign", dest='sign', help="sign all executables", action="store_true")
+parser.add_argument("--qt-source", help="use Qt source directory", action="store")
+parser.add_argument("--pyside-source", help="use PySide source directory", action="store")
 
 if not sys.platform.startswith("win"):
 	parser.add_argument("-j", "--jobs", dest='jobs', default=ceil(os.cpu_count()*1.1), help="Number of build threads (Defaults to 1.1*cpu_count)")
@@ -206,10 +208,17 @@ for patch in sorted(pyside_patches_path.iterdir()):
 		resolved_path = patch.resolve()
 		pyside_patches.append(patch.resolve())
 
-for patch in qt_patches:
-	print(f"Apply Qt patch: {patch}")
-for patch in pyside_patches:
-	print(f"Apply PySide patch: {patch}")
+if args.qt_source:
+	print(f"Use existing Qt source directory at {args.qt_source}")
+else:
+	for patch in qt_patches:
+		print(f"Apply Qt patch: {patch}")
+
+if args.pyside_source:
+	print(f"Use existing PySide source directory at {args.pyside_source}")
+else:
+	for patch in pyside_patches:
+		print(f"Apply PySide patch: {patch}")
 
 if args.prompt and input("\nIs this correct (y/n)? ") != "y":
 	print("Aborted")
@@ -239,61 +248,66 @@ if args.install and user_qt_parent_path.exists():
 
 
 if not args.no_clone:
-	print("\nCloning Qt...")
 	if os.path.exists(source_path):
 		remove_dir(source_path)
-	if args.mirror:
-		if subprocess.call(["git", "clone", f"{args.mirror}qt5.git", qt_source_path]) != 0:
-			print("Failed to clone Qt git repository")
-			sys.exit(1)
+
+	if args.qt_source:
+		print("\nCopying existing Qt source...")
+		shutil.copytree(args.qt_source, qt_source_path)
 	else:
-		if subprocess.call(["git", "clone", "git://code.qt.io/qt/qt5.git", qt_source_path]) != 0:
-			print("Failed to clone Qt git repository")
-			sys.exit(1)
-	if subprocess.call(["git", "checkout", f"v{qt_version}"], cwd=qt_source_path) != 0:
-		print("Failed to check out branch '{}'".format(qt_version))
-		sys.exit(1)
-
-	init_repo_options = ["--module-subset=" + ",".join(qt_modules), "--no-update"]
-	if sys.platform == 'win32':
-		if subprocess.call(["perl", os.path.join(qt_source_path, "init-repository")] + init_repo_options + mirror, cwd=qt_source_path) != 0:
-			print("Failed to initialize submodules")
-			sys.exit(1)
-	else:
-		if subprocess.call([os.path.join(qt_source_path, "init-repository")] + init_repo_options + mirror, cwd=qt_source_path) != 0:
-			print("Failed to initialize submodules")
+		print("\nCloning Qt...")
+		if args.mirror:
+			if subprocess.call(["git", "clone", f"{args.mirror}qt5.git", qt_source_path]) != 0:
+				print("Failed to clone Qt git repository")
+				sys.exit(1)
+		else:
+			if subprocess.call(["git", "clone", "git://code.qt.io/qt/qt5.git", qt_source_path]) != 0:
+				print("Failed to clone Qt git repository")
+				sys.exit(1)
+		if subprocess.call(["git", "checkout", f"v{qt_version}"], cwd=qt_source_path) != 0:
+			print("Failed to check out branch '{}'".format(qt_version))
 			sys.exit(1)
 
-	# Check out submodules, but don't check out recursively until we've had a chance to patch
-	# module paths
-	if subprocess.call(["git", "submodule", "update", "--init"] + qt_modules, cwd=qt_source_path) != 0:
-		print("Failed to check out submodules")
-		sys.exit(1)
+		init_repo_options = ["--module-subset=" + ",".join(qt_modules), "--no-update"]
+		if sys.platform == 'win32':
+			if subprocess.call(["perl", os.path.join(qt_source_path, "init-repository")] + init_repo_options + mirror, cwd=qt_source_path) != 0:
+				print("Failed to initialize submodules")
+				sys.exit(1)
+		else:
+			if subprocess.call([os.path.join(qt_source_path, "init-repository")] + init_repo_options + mirror, cwd=qt_source_path) != 0:
+				print("Failed to initialize submodules")
+				sys.exit(1)
 
-	if args.mirror:
-		# Fix qttools .gitmodules to use mirror
-		open(os.path.join(qt_source_path, "qttools", ".gitmodules"), 'w').write(
-			'[submodule "src/assistant/qlitehtml"]\n' +
-			'    path = src/assistant/qlitehtml\n' +
-			f'    url = {args.mirror}qlitehtml.git'
-		)
-
-	# Check out all submodules
-	if subprocess.call(["git", "submodule", "update", "--init", "--recursive"] + qt_modules, cwd=qt_source_path) != 0:
-		print("Failed to check out submodules")
-		sys.exit(1)
-
-	for patch in qt_patches:
-		print(f"\nApplying patch {patch}...")
-		if subprocess.call(["patch", "-p1", "-i", os.path.abspath(patch)], cwd=qt_source_path) != 0:
-			print("Failed to patch source")
+		# Check out submodules, but don't check out recursively until we've had a chance to patch
+		# module paths
+		if subprocess.call(["git", "submodule", "update", "--init"] + qt_modules, cwd=qt_source_path) != 0:
+			print("Failed to check out submodules")
 			sys.exit(1)
 
-	if args.patch:
-		print("\nApplying user provided patch...")
-		if subprocess.call(["patch", "-p1", "-i", os.path.abspath(args.patch)], cwd=qt_source_path) != 0:
-			print("Failed to patch source")
+		if args.mirror:
+			# Fix qttools .gitmodules to use mirror
+			open(os.path.join(qt_source_path, "qttools", ".gitmodules"), 'w').write(
+				'[submodule "src/assistant/qlitehtml"]\n' +
+				'    path = src/assistant/qlitehtml\n' +
+				f'    url = {args.mirror}qlitehtml.git'
+			)
+
+		# Check out all submodules
+		if subprocess.call(["git", "submodule", "update", "--init", "--recursive"] + qt_modules, cwd=qt_source_path) != 0:
+			print("Failed to check out submodules")
 			sys.exit(1)
+
+		for patch in qt_patches:
+			print(f"\nApplying patch {patch}...")
+			if subprocess.call(["patch", "-p1", "-i", os.path.abspath(patch)], cwd=qt_source_path) != 0:
+				print("Failed to patch source")
+				sys.exit(1)
+
+		if args.patch:
+			print("\nApplying user provided patch...")
+			if subprocess.call(["patch", "-p1", "-i", os.path.abspath(args.patch)], cwd=qt_source_path) != 0:
+				print("Failed to patch source")
+				sys.exit(1)
 
 	if sys.platform == 'linux':
 		print("Cloning libicu")
@@ -306,30 +320,28 @@ if not args.no_clone:
 			print("Failed to check out branch '{}'".format(icu_version))
 			sys.exit(1)
 
-	print("\nCloning pyside-setup...")
-	if args.mirror:
-		if subprocess.call(["git", "clone", f"{args.mirror}pyside-setup", pyside_source_path]) != 0:
-			print("Failed to clone PySide git repository")
-			sys.exit(1)
+	if args.pyside_source:
+		print("\nCopying existing PySide source...")
+		shutil.copytree(args.pyside_source, pyside_source_path)
 	else:
-		if subprocess.call(["git", "clone", "https://codereview.qt-project.org/pyside/pyside-setup", pyside_source_path]) != 0:
-			print("Failed to clone PySide git repository")
+		print("\nCloning pyside-setup...")
+		if args.mirror:
+			if subprocess.call(["git", "clone", f"{args.mirror}pyside-setup", pyside_source_path]) != 0:
+				print("Failed to clone PySide git repository")
+				sys.exit(1)
+		else:
+			if subprocess.call(["git", "clone", "https://codereview.qt-project.org/pyside/pyside-setup", pyside_source_path]) != 0:
+				print("Failed to clone PySide git repository")
+				sys.exit(1)
+		if subprocess.call(["git", "checkout", qt_version], cwd=pyside_source_path) != 0:
+			print("Failed to check out branch '{}'".format(qt_version))
 			sys.exit(1)
-	if subprocess.call(["git", "checkout", qt_version], cwd=pyside_source_path) != 0:
-		print("Failed to check out branch '{}'".format(qt_version))
-		sys.exit(1)
 
-	for patch in pyside_patches:
-		print(f"\nApplying patch {patch}...")
-		if subprocess.call(["patch", "-p1", "-i", os.path.abspath(patch)], cwd=pyside_source_path) != 0:
-			print("Failed to patch source")
-			sys.exit(1)
-
-	if args.patch:
-		print("\nApplying patch...")
-		if subprocess.call(["patch", "-p1", "-i", os.path.abspath(args.patch)], cwd=pyside_source_path) != 0:
-			print("Failed to patch source")
-			sys.exit(1)
+		for patch in pyside_patches:
+			print(f"\nApplying patch {patch}...")
+			if subprocess.call(["patch", "-p1", "-i", os.path.abspath(patch)], cwd=pyside_source_path) != 0:
+				print("Failed to patch source")
+				sys.exit(1)
 
 if os.path.exists(build_path):
 	remove_dir(build_path)
