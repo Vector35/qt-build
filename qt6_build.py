@@ -7,6 +7,7 @@ import glob
 import zipfile
 import argparse
 import platform
+import datetime
 
 from math import ceil
 from pathlib import Path
@@ -33,7 +34,7 @@ def keychain_unlocker():
     keychain_unlocker = os.environ["HOME"] + "/unlock-keychain"
     if os.path.exists(keychain_unlocker):
         return subprocess.call([keychain_unlocker]) == 0
-    return False
+    return True
 
 
 def mac_sign(path):
@@ -69,6 +70,7 @@ parser.add_argument("--no-clone", help="skip cloning the Qt 6 source code", acti
 parser.add_argument("--no-clean", dest='clean', action='store_false', default=True, help="skip removing the Qt 6 source code")
 parser.add_argument("--no-prompt", dest='prompt', action='store_false', default=True, help="Don't wait for user prompt")
 parser.add_argument("--no-install", dest='install', action='store_false', default=True, help="Don't install build products to your home folder")
+parser.add_argument("--no-pyside", dest='pyside', action='store_false', default=True, help="Don't build PySide")
 parser.add_argument("--patch", help="patch the source before building")
 parser.add_argument("--asan", help="build with ASAN", action="store_true")
 parser.add_argument("--debug", help="build a debug configuration", action="store_true")
@@ -90,6 +92,7 @@ if args.asan:
 	print("Building with ASAN")
 	build_opts.remove("-release")
 	build_opts += ["-debug", "-sanitize", "address"]
+	args.pyside = False
 
 if args.debug:
 	print("Building debug")
@@ -193,6 +196,7 @@ print(f"Clean build directory:       {'YES' if args.clean else 'NO'}")
 print(f"Universal build:             {'YES' if args.universal else 'NO'}")
 print(f"Install to home directory:   {'YES' if args.install else 'NO'}")
 print(f"Codesigning:                 {'YES' if args.sign else 'NO'}")
+print(f"PySide:                      {'YES' if args.pyside else 'NO'}")
 print("")
 
 
@@ -214,11 +218,12 @@ else:
 	for patch in qt_patches:
 		print(f"Apply Qt patch: {patch}")
 
-if args.pyside_source:
-	print(f"Use existing PySide source directory at {args.pyside_source}")
-else:
-	for patch in pyside_patches:
-		print(f"Apply PySide patch: {patch}")
+if args.pyside:
+	if args.pyside_source:
+		print(f"Use existing PySide source directory at {args.pyside_source}")
+	else:
+		for patch in pyside_patches:
+			print(f"Apply PySide patch: {patch}")
 
 if args.prompt and input("\nIs this correct (y/n)? ") != "y":
 	print("Aborted")
@@ -320,28 +325,29 @@ if not args.no_clone:
 			print("Failed to check out branch '{}'".format(icu_version))
 			sys.exit(1)
 
-	if args.pyside_source:
-		print("\nCopying existing PySide source...")
-		shutil.copytree(args.pyside_source, pyside_source_path)
-	else:
-		print("\nCloning pyside-setup...")
-		if args.mirror:
-			if subprocess.call(["git", "clone", f"{args.mirror}pyside-setup", pyside_source_path]) != 0:
-				print("Failed to clone PySide git repository")
-				sys.exit(1)
+	if args.pyside:
+		if args.pyside_source:
+			print("\nCopying existing PySide source...")
+			shutil.copytree(args.pyside_source, pyside_source_path)
 		else:
-			if subprocess.call(["git", "clone", "https://codereview.qt-project.org/pyside/pyside-setup", pyside_source_path]) != 0:
-				print("Failed to clone PySide git repository")
+			print("\nCloning pyside-setup...")
+			if args.mirror:
+				if subprocess.call(["git", "clone", f"{args.mirror}pyside-setup", pyside_source_path]) != 0:
+					print("Failed to clone PySide git repository")
+					sys.exit(1)
+			else:
+				if subprocess.call(["git", "clone", "https://codereview.qt-project.org/pyside/pyside-setup", pyside_source_path]) != 0:
+					print("Failed to clone PySide git repository")
+					sys.exit(1)
+			if subprocess.call(["git", "checkout", qt_version], cwd=pyside_source_path) != 0:
+				print("Failed to check out branch '{}'".format(qt_version))
 				sys.exit(1)
-		if subprocess.call(["git", "checkout", qt_version], cwd=pyside_source_path) != 0:
-			print("Failed to check out branch '{}'".format(qt_version))
-			sys.exit(1)
 
-		for patch in pyside_patches:
-			print(f"\nApplying patch {patch}...")
-			if subprocess.call(["patch", "-p1", "-i", os.path.abspath(patch)], cwd=pyside_source_path) != 0:
-				print("Failed to patch source")
-				sys.exit(1)
+			for patch in pyside_patches:
+				print(f"\nApplying patch {patch}...")
+				if subprocess.call(["patch", "-p1", "-i", os.path.abspath(patch)], cwd=pyside_source_path) != 0:
+					print("Failed to patch source")
+					sys.exit(1)
 
 if os.path.exists(build_path):
 	remove_dir(build_path)
@@ -507,40 +513,41 @@ else:
 				subprocess.call(f'patchelf --set-rpath \\$ORIGIN {install_path}/lib/{name}', shell=True)
 
 
-print("\nBuilding Python 3 bindings...")
-os.environ["CMAKE_PREFIX_PATH"] = str(install_path / "lib" / "cmake")
-if sys.platform == 'win32':
-	os.environ["PATH"] = f'{str(install_path / "bin")};{os.environ["PATH"]}'
-if os.path.exists(pyside_build_path):
-	remove_dir(pyside_build_path)
-shutil.copytree(pyside_source_path, pyside_build_path)
-if sys.platform == 'darwin':
-	if platform.processor() == 'arm' and args.universal:
-		os.environ["CMAKE_OSX_ARCHITECTURES"] = "arm64;x86_64"
-if subprocess.call([python3_cmd, "setup.py", "build", "--standalone", "--limited-api=yes",
-	"--module-subset=" + ",".join(pyside_modules),
-	"--qtpaths=" + str(qtpaths),"--macos-deployment-target=" + min_macos] + parallel, cwd=pyside_build_path) != 0:
-	print("Python 3 bindings failed to build")
-	sys.exit(1)
+if args.pyside:
+	print("\nBuilding Python 3 bindings...")
+	os.environ["CMAKE_PREFIX_PATH"] = str(install_path / "lib" / "cmake")
+	if sys.platform == 'win32':
+		os.environ["PATH"] = f'{str(install_path / "bin")};{os.environ["PATH"]}'
+	if os.path.exists(pyside_build_path):
+		remove_dir(pyside_build_path)
+	shutil.copytree(pyside_source_path, pyside_build_path)
+	if sys.platform == 'darwin':
+		if platform.processor() == 'arm' and args.universal:
+			os.environ["CMAKE_OSX_ARCHITECTURES"] = "arm64;x86_64"
+	if subprocess.call([python3_cmd, "setup.py", "build", "--standalone", "--limited-api=yes",
+		"--module-subset=" + ",".join(pyside_modules),
+		"--qtpaths=" + str(qtpaths),"--macos-deployment-target=" + min_macos] + parallel, cwd=pyside_build_path) != 0:
+		print("Python 3 bindings failed to build")
+		sys.exit(1)
 
-print("\nInstalling Python 3 bindings...")
-if os.path.exists(pyside_install_path):
-	remove_dir(pyside_install_path)
-os.makedirs(os.path.join(pyside_install_path, "site-packages"))
+	print("\nInstalling Python 3 bindings...")
+	if os.path.exists(pyside_install_path):
+		remove_dir(pyside_install_path)
+	os.makedirs(os.path.join(pyside_install_path, "site-packages"))
 
-for bundle in glob.glob(os.path.join(pyside_build_path, "build", "qfp*")):
-	shutil.copytree(os.path.join(bundle, "package_for_wheels", "PySide6"), os.path.join(pyside_install_path, "site-packages", "PySide6"))
-	shutil.copytree(os.path.join(bundle, "package_for_wheels", "shiboken6"), os.path.join(pyside_install_path, "site-packages", "shiboken6"))
-	shutil.copytree(os.path.join(bundle, "package_for_wheels", "shiboken6_generator"), os.path.join(pyside_install_path, "site-packages", "shiboken6_generator"))
+	for bundle in glob.glob(os.path.join(pyside_build_path, "build", "qfp*")):
+		shutil.copytree(os.path.join(bundle, "package_for_wheels", "PySide6"), os.path.join(pyside_install_path, "site-packages", "PySide6"))
+		shutil.copytree(os.path.join(bundle, "package_for_wheels", "shiboken6"), os.path.join(pyside_install_path, "site-packages", "shiboken6"))
+		shutil.copytree(os.path.join(bundle, "package_for_wheels", "shiboken6_generator"), os.path.join(pyside_install_path, "site-packages", "shiboken6_generator"))
 
-if sys.platform == 'linux' and llvm_dir:
-	# Newer versions of PySide don't link to libclang in a way that works after the build, copy over
-	# the correct version of libclang
-	for f in glob.glob(os.path.join(llvm_dir, "lib", "libclang.so*")):
-		shutil.copy(f, os.path.join(pyside_install_path, "site-packages", "shiboken6_generator", os.path.basename(f)), follow_symlinks=False)
+	if sys.platform == 'linux' and llvm_dir:
+		# Newer versions of PySide don't link to libclang in a way that works after the build, copy over
+		# the correct version of libclang
+		for f in glob.glob(os.path.join(llvm_dir, "lib", "libclang.so*")):
+			shutil.copy(f, os.path.join(pyside_install_path, "site-packages", "shiboken6_generator", os.path.basename(f)), follow_symlinks=False)
 
-# Add PySide installer to place it into Python path
-shutil.copy(os.path.join(base_dir, "install_pyside_pth.py"), os.path.join(install_path, "install_pyside_pth.py"))
+	# Add PySide installer to place it into Python path
+	shutil.copy(os.path.join(base_dir, "install_pyside_pth.py"), os.path.join(install_path, "install_pyside_pth.py"))
 
 
 # Create modified libraries that contain the correct rpath for bundling. These will be signed separately
@@ -550,7 +557,8 @@ if sys.platform == 'darwin':
 	os.mkdir(bundle_path)
 	for plugin_type in plugin_types:
 		os.mkdir(os.path.join(bundle_path, plugin_type))
-	os.mkdir(os.path.join(bundle_path, "PySide6"))
+	if args.pyside:
+		os.mkdir(os.path.join(bundle_path, "PySide6"))
 
 	for plugin_type in plugin_types:
 		for f in glob.glob(os.path.join(install_path, "plugins", plugin_type, "*.dylib")):
@@ -563,33 +571,35 @@ if sys.platform == 'darwin':
 				print(f"Failed to add framework rpath to {target}")
 				sys.exit(1)
 
-	for f in glob.glob(os.path.join(pyside_install_path, "site-packages", "PySide6", "*.so")):
-		target = os.path.join(bundle_path, "PySide6", os.path.basename(f))
-		shutil.copy(f, target)
-		if subprocess.call(["install_name_tool", "-delete_rpath", "@loader_path/Qt/lib", target]) != 0:
-			print(f"Failed to remove rpath from {target}")
-			sys.exit(1)
-		if subprocess.call(["install_name_tool", "-add_rpath", "@loader_path/../../../Frameworks", target]) != 0:
-			print(f"Failed to add framework rpath to {target}")
-			sys.exit(1)
+	if args.pyside:
+		for f in glob.glob(os.path.join(pyside_install_path, "site-packages", "PySide6", "*.so")):
+			target = os.path.join(bundle_path, "PySide6", os.path.basename(f))
+			shutil.copy(f, target)
+			if subprocess.call(["install_name_tool", "-delete_rpath", "@loader_path/Qt/lib", target]) != 0:
+				print(f"Failed to remove rpath from {target}")
+				sys.exit(1)
+			if subprocess.call(["install_name_tool", "-add_rpath", "@loader_path/../../../Frameworks", target]) != 0:
+				print(f"Failed to add framework rpath to {target}")
+				sys.exit(1)
 
-	for f in glob.glob(os.path.join(pyside_install_path, "site-packages", "PySide6", "*.dylib")):
-		target = os.path.join(bundle_path, "PySide6", os.path.basename(f))
-		shutil.copy(f, target)
-		if subprocess.call(["install_name_tool", "-delete_rpath", "@loader_path/Qt/lib", target]) != 0:
-			print(f"Failed to remove rpath from {target}")
-			sys.exit(1)
+		for f in glob.glob(os.path.join(pyside_install_path, "site-packages", "PySide6", "*.dylib")):
+			target = os.path.join(bundle_path, "PySide6", os.path.basename(f))
+			shutil.copy(f, target)
+			if subprocess.call(["install_name_tool", "-delete_rpath", "@loader_path/Qt/lib", target]) != 0:
+				print(f"Failed to remove rpath from {target}")
+				sys.exit(1)
 
-		if subprocess.call(["install_name_tool", "-add_rpath", "@loader_path/../../../Frameworks", target]) != 0:
-			print(f"Failed to add framework rpath to {target}")
-			sys.exit(1)
+			if subprocess.call(["install_name_tool", "-add_rpath", "@loader_path/../../../Frameworks", target]) != 0:
+				print(f"Failed to add framework rpath to {target}")
+				sys.exit(1)
 elif sys.platform == 'linux':
 	plugin_types = ["platforms", "imageformats", "wayland-decoration-client", "wayland-graphics-integration-client",
 		"wayland-shell-integration"]
 	os.mkdir(bundle_path)
 	for plugin_type in plugin_types:
 		os.mkdir(os.path.join(bundle_path, plugin_type))
-	os.mkdir(os.path.join(bundle_path, "PySide6"))
+	if args.pyside:
+		os.mkdir(os.path.join(bundle_path, "PySide6"))
 
 	for plugin_type in plugin_types:
 		for f in glob.glob(os.path.join(install_path, "plugins", plugin_type, "*.so")):
@@ -599,20 +609,21 @@ elif sys.platform == 'linux':
 				print(f"ERROR: Failed to change rpath in {target}")
 				sys.exit(1)
 
-	qt_major_minor_version = ".".join(qt_version.split(".")[0:2])
-	for f in glob.glob(os.path.join(pyside_install_path, "site-packages", "PySide6", "*.abi3.so")):
-		target = os.path.join(bundle_path, "PySide6", os.path.basename(f))
-		shutil.copy(f, target)
-		if subprocess.call(["patchelf", "--set-rpath", "$ORIGIN:$ORIGIN/../shiboken6:$ORIGIN/../..", target]) != 0:
-			print(f"Failed to change rpath in {target}")
-			sys.exit(1)
+	if args.pyside:
+		qt_major_minor_version = ".".join(qt_version.split(".")[0:2])
+		for f in glob.glob(os.path.join(pyside_install_path, "site-packages", "PySide6", "*.abi3.so")):
+			target = os.path.join(bundle_path, "PySide6", os.path.basename(f))
+			shutil.copy(f, target)
+			if subprocess.call(["patchelf", "--set-rpath", "$ORIGIN:$ORIGIN/../shiboken6:$ORIGIN/../..", target]) != 0:
+				print(f"Failed to change rpath in {target}")
+				sys.exit(1)
 
-	pyside_module = f"libpyside6.abi3.so.{qt_major_minor_version}"
-	target = os.path.join(bundle_path, "PySide6", pyside_module)
-	shutil.copy(os.path.join(pyside_install_path, "site-packages", "PySide6", pyside_module), target)
-	if subprocess.call(["patchelf", "--set-rpath" ,"$ORIGIN:$ORIGIN/../shiboken6:$ORIGIN/../..", target]) != 0:
-		print("Failed to change rpath in libpyside")
-		sys.exit(1)
+		pyside_module = f"libpyside6.abi3.so.{qt_major_minor_version}"
+		target = os.path.join(bundle_path, "PySide6", pyside_module)
+		shutil.copy(os.path.join(pyside_install_path, "site-packages", "PySide6", pyside_module), target)
+		if subprocess.call(["patchelf", "--set-rpath" ,"$ORIGIN:$ORIGIN/../shiboken6:$ORIGIN/../..", target]) != 0:
+			print("Failed to change rpath in libpyside")
+			sys.exit(1)
 
 
 if args.sign:
@@ -660,17 +671,17 @@ with zipfile.ZipFile(artifact_path / f'qt{qt_version}.zip', 'w', zipfile.ZIP_DEF
 		relpath = relpath.strip('\/')
 		for dir in dirs:
 			file_path = os.path.join(root, dir)
-			arc_name = os.path.join("Qt", qt_version, compiler, relpath, dir)
+			arc_name = os.path.join("Qt", qt_version_dir, compiler, relpath, dir)
 			if os.path.islink(file_path):
-				info = zipfile.ZipInfo(arc_name)
+				info = zipfile.ZipInfo(arc_name, datetime.datetime.now().timetuple())
 				info.compress_type = zipfile.ZIP_DEFLATED
 				info.external_attr = 0o120755 << 16
 				z.writestr(info, os.readlink(file_path))
 		for file in files:
 			print(f"Adding {relpath}/{file}...")
 			file_path = os.path.join(root, file)
-			arc_name = os.path.join("Qt", qt_version, compiler, relpath, file)
-			info = zipfile.ZipInfo(arc_name)
+			arc_name = os.path.join("Qt", qt_version_dir, compiler, relpath, file)
+			info = zipfile.ZipInfo(arc_name, datetime.datetime.now().timetuple())
 			info.compress_type = zipfile.ZIP_DEFLATED
 
 			if os.path.islink(file_path):
