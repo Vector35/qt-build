@@ -73,6 +73,7 @@ parser.add_argument("--no-install", dest='install', action='store_false', defaul
 parser.add_argument("--no-pyside", dest='pyside', action='store_false', default=True, help="Don't build PySide")
 parser.add_argument("--patch", help="patch the source before building")
 parser.add_argument("--asan", help="build with ASAN", action="store_true")
+parser.add_argument("--tsan", help="build with TSAN", action="store_true")
 parser.add_argument("--debug", help="build a debug configuration", action="store_true")
 parser.add_argument("--universal", help="build for both x86_64 and arm64 (arm64 Mac host only)", action="store_true")
 parser.add_argument("--mirror", help="use source mirror", action="store")
@@ -92,6 +93,12 @@ if args.asan:
 	print("Building with ASAN")
 	build_opts.remove("-release")
 	build_opts += ["-debug", "-sanitize", "address"]
+	args.pyside = False
+
+if args.tsan:
+	print("Building with TSAN")
+	build_opts.remove("-release")
+	build_opts += ["-debug", "-sanitize", "thread"]
 	args.pyside = False
 
 if args.debug:
@@ -156,6 +163,8 @@ build_path = source_path / "build"
 artifact_path = base_dir / "artifacts"
 if args.asan:
 	qt_version_dir = qt_version + "-asan"
+elif args.tsan:
+	qt_version_dir = qt_version + "-tsan"
 else:
 	qt_version_dir = qt_version
 if sys.platform == 'win32':
@@ -316,10 +325,16 @@ if not args.no_clone:
 
 	if sys.platform == 'linux':
 		print("Cloning libicu")
-		if subprocess.call(["git", "clone", "https://github.com/unicode-org/icu.git",
-			os.path.join(qt_source_path, "icu")]) != 0:
-			print("Failed to clone Qt git repository")
-			sys.exit(1)
+		if args.mirror:
+			if subprocess.call(["git", "clone", f"{args.mirror}icu.git",
+				os.path.join(qt_source_path, "icu")]) != 0:
+				print("Failed to clone Qt git repository")
+				sys.exit(1)
+		else:
+			if subprocess.call(["git", "clone", "https://github.com/unicode-org/icu.git",
+				os.path.join(qt_source_path, "icu")]) != 0:
+				print("Failed to clone Qt git repository")
+				sys.exit(1)
 		icu_version = "release-68-2"
 		if subprocess.call(["git", "checkout", icu_version], cwd=os.path.join(qt_source_path, "icu")) != 0:
 			print("Failed to check out branch '{}'".format(icu_version))
@@ -515,7 +530,6 @@ else:
 
 if args.pyside:
 	print("\nBuilding Python 3 bindings...")
-	os.environ["CMAKE_PREFIX_PATH"] = str(install_path / "lib" / "cmake")
 	if sys.platform == 'win32':
 		os.environ["PATH"] = f'{str(install_path / "bin")};{os.environ["PATH"]}'
 	if os.path.exists(pyside_build_path):
@@ -526,6 +540,7 @@ if args.pyside:
 			os.environ["CMAKE_OSX_ARCHITECTURES"] = "arm64;x86_64"
 	if subprocess.call([python3_cmd, "setup.py", "build", "--standalone", "--limited-api=yes",
 		"--module-subset=" + ",".join(pyside_modules),
+		"--qt-target-path=" + str(install_path),
 		"--qtpaths=" + str(qtpaths),"--macos-deployment-target=" + min_macos] + parallel, cwd=pyside_build_path) != 0:
 		print("Python 3 bindings failed to build")
 		sys.exit(1)
