@@ -1,0 +1,23 @@
+diff --git a/sources/pyside6/PySide6/QtWidgets/CMakeLists.txt b/sources/pyside6/PySide6/QtWidgets/CMakeLists.txt
+index 85d4cdfd2..649dd4c8c 100644
+--- a/sources/pyside6/PySide6/QtWidgets/CMakeLists.txt
++++ b/sources/pyside6/PySide6/QtWidgets/CMakeLists.txt
+@@ -44,10 +44,6 @@ ${QtWidgets_GEN_DIR}/qgestureevent_wrapper.cpp
+ ${QtWidgets_GEN_DIR}/qgesturerecognizer_wrapper.cpp
+ ${QtWidgets_GEN_DIR}/qgraphicsanchor_wrapper.cpp
+ ${QtWidgets_GEN_DIR}/qgraphicsanchorlayout_wrapper.cpp
+-${QtWidgets_GEN_DIR}/qgraphicsblureffect_wrapper.cpp
+-${QtWidgets_GEN_DIR}/qgraphicscolorizeeffect_wrapper.cpp
+-${QtWidgets_GEN_DIR}/qgraphicsdropshadoweffect_wrapper.cpp
+-${QtWidgets_GEN_DIR}/qgraphicseffect_wrapper.cpp
+ ${QtWidgets_GEN_DIR}/qgraphicsellipseitem_wrapper.cpp
+ ${QtWidgets_GEN_DIR}/qgraphicsgridlayout_wrapper.cpp
+ ${QtWidgets_GEN_DIR}/qgraphicsitem_wrapper.cpp
+@@ -58,7 +54,6 @@ ${QtWidgets_GEN_DIR}/qgraphicslayoutitem_wrapper.cpp
+ ${QtWidgets_GEN_DIR}/qgraphicslinearlayout_wrapper.cpp
+ ${QtWidgets_GEN_DIR}/qgraphicslineitem_wrapper.cpp
+ ${QtWidgets_GEN_DIR}/qgraphicsobject_wrapper.cpp
+-${QtWidgets_GEN_DIR}/qgraphicsopacityeffect_wrapper.cpp
+ ${QtWidgets_GEN_DIR}/qgraphicspathitem_wrapper.cpp
+ ${QtWidgets_GEN_DIR}/qgraphicspixmapitem_wrapper.cpp
+ ${QtWidgets_GEN_DIR}/qgraphicspolygonitem_wrapper.cpp
