@@ -65,6 +65,15 @@ def signWindowsFiles(path):
 	return False
 
 
+def apply_patch(path, qt_source_path):
+	# On some Windows machines, git apply breaks. On others, patch breaks. Just try both, because
+	# Windows environments are so hard to predict we can't rely on anything to be sane.
+	if subprocess.call(["git", "apply", os.path.abspath(path)], cwd=qt_source_path) != 0:
+		if subprocess.call(["patch", "-p1", "-i", os.path.abspath(path)], cwd=qt_source_path) != 0:
+			print("Failed to patch source")
+			sys.exit(1)
+
+
 parser = argparse.ArgumentParser(description = "Build and install Qt 6", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument("--no-clone", help="skip cloning the Qt 6 source code", action="store_true")
 parser.add_argument("--no-clean", dest='clean', action='store_false', default=True, help="skip removing the Qt 6 source code")
@@ -313,15 +322,11 @@ if not args.no_clone:
 
 		for patch in qt_patches:
 			print(f"\nApplying patch {patch}...")
-			if subprocess.call(["git", "apply", os.path.abspath(patch)], cwd=qt_source_path) != 0:
-				print("Failed to patch source")
-				sys.exit(1)
+			apply_patch(patch, qt_source_path)
 
 		if args.patch:
 			print("\nApplying user provided patch...")
-			if subprocess.call(["git", "apply", os.path.abspath(args.patch)], cwd=qt_source_path) != 0:
-				print("Failed to patch source")
-				sys.exit(1)
+			apply_patch(args.patch, qt_source_path)
 
 	if sys.platform == 'linux':
 		print("Cloning libicu")
@@ -360,9 +365,7 @@ if not args.no_clone:
 
 			for patch in pyside_patches:
 				print(f"\nApplying patch {patch}...")
-				if subprocess.call(["git", "apply", os.path.abspath(patch)], cwd=pyside_source_path) != 0:
-					print("Failed to patch source")
-					sys.exit(1)
+				apply_patch(patch, pyside_source_path)
 
 if os.path.exists(build_path):
 	remove_dir(build_path)
