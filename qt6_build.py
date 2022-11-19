@@ -127,7 +127,7 @@ if sys.platform.startswith("win"):
 	python3_cmd = "py"
 
 	# Import vcvars from Visual Studio
-	vcvars = subprocess.check_output(fR"""call "C:\Program Files (x86)\Microsoft Visual Studio\{vs_version}\Professional\VC\Auxiliary\Build\vcvars64.bat" -vcvars_ver={msvc_build} && set""", shell=True)
+	vcvars = subprocess.check_output(fR"""call "C:\Program Files\Microsoft Visual Studio\{vs_version}\Professional\VC\Auxiliary\Build\vcvars64.bat" -vcvars_ver={msvc_build} && set""", shell=True)
 	for line in vcvars.split(b'\r\n'):
 		line = line.strip()
 		if b'=' not in line:
@@ -313,13 +313,13 @@ if not args.no_clone:
 
 		for patch in qt_patches:
 			print(f"\nApplying patch {patch}...")
-			if subprocess.call(["patch", "-p1", "-i", os.path.abspath(patch)], cwd=qt_source_path) != 0:
+			if subprocess.call(["git", "apply", os.path.abspath(patch)], cwd=qt_source_path) != 0:
 				print("Failed to patch source")
 				sys.exit(1)
 
 		if args.patch:
 			print("\nApplying user provided patch...")
-			if subprocess.call(["patch", "-p1", "-i", os.path.abspath(args.patch)], cwd=qt_source_path) != 0:
+			if subprocess.call(["git", "apply", os.path.abspath(args.patch)], cwd=qt_source_path) != 0:
 				print("Failed to patch source")
 				sys.exit(1)
 
@@ -360,7 +360,7 @@ if not args.no_clone:
 
 			for patch in pyside_patches:
 				print(f"\nApplying patch {patch}...")
-				if subprocess.call(["patch", "-p1", "-i", os.path.abspath(patch)], cwd=pyside_source_path) != 0:
+				if subprocess.call(["git", "apply", os.path.abspath(patch)], cwd=pyside_source_path) != 0:
 					print("Failed to patch source")
 					sys.exit(1)
 
