@@ -1,0 +1,26 @@
+diff --git a/qtbase/src/gui/kernel/qevent.cpp b/qtbase/src/gui/kernel/qevent.cpp
+index 326d9020f3..f9db205d74 100644
+--- a/qtbase/src/gui/kernel/qevent.cpp
++++ b/qtbase/src/gui/kernel/qevent.cpp
+@@ -1359,6 +1359,10 @@ QKeyEvent::QKeyEvent(Type type, int key, Qt::KeyboardModifiers modifiers, const
+ {
+      if (type == QEvent::ShortcutOverride)
+         ignore();
++
++	 // Ignore characters in the private use area, macOS for example uses these for arrow keys
++	 if (m_text.size() == 1 && m_text[0].unicode() >= 0xe000 && m_text[0].unicode() <= 0xf8ff)
++		 m_text = QString();
+ }
+ 
+ /*!
+@@ -1388,6 +1392,10 @@ QKeyEvent::QKeyEvent(Type type, int key, Qt::KeyboardModifiers modifiers,
+ {
+     if (type == QEvent::ShortcutOverride)
+         ignore();
++
++	 // Ignore characters in the private use area, macOS for example uses these for arrow keys
++	 if (m_text.size() == 1 && m_text[0].unicode() >= 0xe000 && m_text[0].unicode() <= 0xf8ff)
++		 m_text = QString();
+ }
+ 
+ 
