@@ -155,7 +155,7 @@ if sys.platform == 'win32':
 	os.environ["HOME"] = os.environ["HOMEDRIVE"] + os.environ["HOMEPATH"]
 
 if "LLVM_INSTALL_DIR" in os.environ:
-	llvm_dir = os.environ["LLVM_INSTALL_DIR"]
+	llvm_dir = os.path.join(os.environ["LLVM_INSTALL_DIR"], llvm_version)
 else:
 	llvm_dir = os.path.join(os.environ["HOME"], "libclang", llvm_version)
 if not os.path.exists(llvm_dir):
