@@ -1,0 +1,13 @@
+diff --git a/qtbase/src/gui/painting/qdrawhelper.cpp b/qtbase/src/gui/painting/qdrawhelper.cpp
+index 35c44b8286..83bddae681 100644
+--- a/qtbase/src/gui/painting/qdrawhelper.cpp
++++ b/qtbase/src/gui/painting/qdrawhelper.cpp
+@@ -26,7 +26,7 @@
+ #include <qmath.h>
+ 
+ #if QT_CONFIG(thread) && !defined(Q_OS_WASM)
+-#define QT_USE_THREAD_PARALLEL_FILLS
++//#define QT_USE_THREAD_PARALLEL_FILLS
+ #endif
+ 
+ #if defined(QT_USE_THREAD_PARALLEL_FILLS)
