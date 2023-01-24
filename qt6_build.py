@@ -124,11 +124,6 @@ if sys.version_info.major < 3:
 	print('Please build Qt 6 with Python 3')
 	exit(1)
 
-if sys.executable.startswith('/Applications/Xcode.app') or sys.executable.startswith('/Library/Developer/CommandLineTools'):
-	print("This script likely does not work with Apple's implementation of Python. "
-		  "Hit enter to continue, or ^C to abort.")
-	sys.stdin.readline()
-
 if sys.platform.startswith("win"):
 	make_cmd = "ninja"
 	parallel = []

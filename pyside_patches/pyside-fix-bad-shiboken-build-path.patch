@@ -1,0 +1,27 @@
+diff --git a/sources/shiboken6/cmake/ShibokenHelpers.cmake b/sources/shiboken6/cmake/ShibokenHelpers.cmake
+index 991026913..fb6e39961 100644
+--- a/sources/shiboken6/cmake/ShibokenHelpers.cmake
++++ b/sources/shiboken6/cmake/ShibokenHelpers.cmake
+@@ -115,13 +115,17 @@ macro(shiboken_internal_set_python_site_packages)
+         execute_process(
+             COMMAND ${PYTHON_EXECUTABLE} -c "if True:
+                 import sysconfig
++                import sys
+                 from os.path import sep
+ 
+-                # /home/qt/dev/env/lib/python3.9/site-packages
+-                lib_path = sysconfig.get_path('purelib')
+-
+-                # /home/qt/dev/env
+-                data_path = sysconfig.get_path('data')
++                if sys.platform.startswith('win'):
++                    lib_path = sysconfig.get_path('purelib')
++                    data_path = sysconfig.get_path('data')
++                else:
++                    # /home/qt/dev/env/lib/python3.9/site-packages
++                    lib_path = sysconfig.get_path('purelib', 'posix_user')
++                    # /home/qt/dev/env
++                    data_path = sysconfig.get_path('data', 'posix_user')
+ 
+                 # /lib/python3.9/site-packages
+                 rel_path = lib_path.replace(data_path, '')
