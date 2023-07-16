@@ -484,6 +484,7 @@ else:
 
 	print("\nConfiguring Qt...")
 	if sys.platform == 'win32':
+		build_opts += ["-directwrite"]  # use DirectWrite for font rendering on Windows
 		if subprocess.call([os.path.join(qt_source_path, "configure.bat")] + build_opts +
 			["-prefix", install_path], cwd=build_path) != 0:
 			print("Failed to configure")
