@@ -175,6 +175,8 @@ elif args.tsan:
 	qt_version_dir = qt_version + "-tsan"
 else:
 	qt_version_dir = qt_version
+if args.debug:
+	qt_version_dir += "-debug"
 if sys.platform == 'win32':
 	compiler = msvc_dir_name
 elif sys.platform == 'darwin':
@@ -541,10 +543,23 @@ if args.pyside:
 	if sys.platform == 'darwin':
 		if platform.processor() == 'arm' and args.universal:
 			os.environ["CMAKE_OSX_ARCHITECTURES"] = "arm64;x86_64"
-	if subprocess.call([python3_cmd, "setup.py", "build", "--standalone", "--limited-api=yes",
+
+	pyside_opts = [
+		"--standalone",
+		"--limited-api=yes",
 		"--module-subset=" + ",".join(pyside_modules),
 		"--qt-target-path=" + str(install_path),
-		"--qtpaths=" + str(qtpaths),"--macos-deployment-target=" + min_macos] + parallel, cwd=pyside_build_path) != 0:
+		"--qtpaths=" + str(qtpaths),
+		"--macos-deployment-target=" + min_macos
+	] + parallel
+
+	if args.debug:
+		pyside_opts += ["--debug"]
+
+	if subprocess.call([python3_cmd,
+		"setup.py",
+		"build",
+	] + pyside_opts, cwd=pyside_build_path) != 0:
 		print("Python 3 bindings failed to build")
 		sys.exit(1)
 
