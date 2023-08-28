@@ -116,8 +116,8 @@ if args.tsan:
 
 if args.debug:
 	print("Building debug")
-	build_opts.remove("-release")
-	build_opts += ["-debug"]
+	# build_opts.remove("-release")
+	build_opts += ["-force-debug-info"]
 
 mirror = []
 if args.mirror:
@@ -165,9 +165,6 @@ os.environ["LLVM_INSTALL_DIR"] = llvm_dir
 
 base_dir = Path(__file__).resolve().parent
 qt_dir = base_dir / "build"
-source_path = qt_dir / "src"
-qt_source_path = source_path / "qt"
-build_path = source_path / "build"
 artifact_path = base_dir / "artifacts"
 if args.asan:
 	qt_version_dir = qt_version + "-asan"
@@ -183,6 +180,7 @@ elif sys.platform == 'darwin':
 	compiler = "clang_64"
 else:
 	compiler = "gcc_64"
+build_path = qt_dir / "build"
 install_path = qt_dir / "install" / "Qt" / qt_version_dir / compiler
 qt_patches_path = base_dir / 'qt_patches'
 pyside_patches_path = base_dir / 'pyside_patches'
@@ -190,10 +188,12 @@ if sys.platform == 'win32':
 	qtpaths = install_path / 'bin' / 'qtpaths.exe'
 else:
 	qtpaths = install_path / 'bin' / 'qtpaths'
-pyside_source_path = source_path / "pyside-setup"
-pyside_build_path = source_path / "pyside-build"
+pyside_build_path = qt_dir / "pyside-build"
 pyside_install_path = install_path / "pyside"
 bundle_path = install_path / "bundle"
+source_path = qt_dir / "install" / "Qt" / qt_version_dir / 'src'
+qt_source_path = source_path / "qt"
+pyside_source_path = source_path / "pyside-setup"
 
 
 
@@ -208,6 +208,10 @@ if args.install:
 	else:
 		user_qt_parent_path = Path.home() / 'Qt' / qt_version_dir
 	print(f"Install path will be         {user_qt_parent_path}")
+
+	source_path = Path(str(user_qt_parent_path) + '-src')
+	qt_source_path = source_path / "qt"
+	pyside_source_path = source_path / "pyside-setup"
 
 
 print(f"LLVM path is                 {llvm_dir}")
@@ -554,7 +558,7 @@ if args.pyside:
 	] + parallel
 
 	if args.debug:
-		pyside_opts += ["--debug"]
+		pyside_opts += ["--relwithdebinfo", "--no-strip"]
 
 	if subprocess.call([python3_cmd,
 		"setup.py",
@@ -736,4 +740,4 @@ if args.install:
 
 if args.clean:
 	print("Cleaning up...")
-	remove_dir(source_path)
+	remove_dir(qt_dir)
