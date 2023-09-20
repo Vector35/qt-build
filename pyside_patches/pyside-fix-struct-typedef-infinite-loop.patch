@@ -1,0 +1,14 @@
+diff --git a/sources/shiboken6/ApiExtractor/clangparser/clangbuilder.cpp b/sources/shiboken6/ApiExtractor/clangparser/clangbuilder.cpp
+index 3e096307e..011033bae 100644
+--- a/sources/shiboken6/ApiExtractor/clangparser/clangbuilder.cpp
++++ b/sources/shiboken6/ApiExtractor/clangparser/clangbuilder.cpp
+@@ -605,7 +605,8 @@ void BuilderPrivate::addTypeDef(const CXCursor &cursor, const CXType &cxType)
+     setFileName(cursor, item.get());
+     item->setType(createTypeInfo(cxType));
+     item->setScope(m_scope);
+-    m_scopeStack.back()->addTypeDef(item);
++    if (qualifiedName(target) != item->type().qualifiedName())
++        m_scopeStack.back()->addTypeDef(item);
+ }
+ 
+ ClassModelItem BuilderPrivate::currentTemplateClass() const

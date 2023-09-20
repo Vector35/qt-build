@@ -1,0 +1,14 @@
+diff --git a/qtbase/src/widgets/dialogs/qmessagebox.cpp b/qtbase/src/widgets/dialogs/qmessagebox.cpp
+index b4d76bc5ec..42853617a6 100644
+--- a/qtbase/src/widgets/dialogs/qmessagebox.cpp
++++ b/qtbase/src/widgets/dialogs/qmessagebox.cpp
+@@ -798,6 +798,9 @@ QMessageBox::QMessageBox(QWidget *parent)
+ {
+     Q_D(QMessageBox);
+     d->init();
++
++    if (parent)
++        setWindowModality(Qt::WindowModal);
+ }
+ 
+ /*!

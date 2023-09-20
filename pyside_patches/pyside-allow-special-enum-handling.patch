@@ -1,0 +1,13 @@
+diff --git a/sources/shiboken6/ApiExtractor/abstractmetabuilder.cpp b/sources/shiboken6/ApiExtractor/abstractmetabuilder.cpp
+index d02741d06..c9c084cd2 100644
+--- a/sources/shiboken6/ApiExtractor/abstractmetabuilder.cpp
++++ b/sources/shiboken6/ApiExtractor/abstractmetabuilder.cpp
+@@ -890,7 +890,7 @@ std::optional<AbstractMetaEnum>
+ 
+     if (!typeEntry->isEnum()) {
+         const QString rejectReason = msgNoEnumTypeConflict(enumItem, className, typeEntry);
+-        if (rejectionWarning)
++        if (rejectionWarning && typeEntry->type() != TypeEntry::PrimitiveType)
+             qCWarning(lcShiboken, "%s", qPrintable(rejectReason));
+         m_rejectedEnums.insert({AbstractMetaBuilder::NotInTypeSystem, qualifiedName,
+                                 qualifiedName, rejectReason});

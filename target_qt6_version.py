@@ -1,8 +1,8 @@
-qt_version = "6.4.3"
-llvm_version = "14.0.0"
+qt_version = "6.5.3"
+llvm_version = "16.0.0"
 msvc_build = "14.34"
 msvc_dir_name = "msvc2022_64"
 vs_version = "2022"
-min_macos = "10.15.7"
-qt_modules = ["qtbase", "qtsvg", "qtwayland", "qtimageformats", "qtdeclarative", "qttools", "qttranslations", "qtlanguageserver"]
+min_macos = "11.0"
+qt_modules = ["qtbase", "qtsvg", "qtwayland", "qtimageformats", "qtdeclarative", "qttools", "qttranslations", "qtlanguageserver", "qtshadertools"]
 pyside_modules = ["Core", "Gui", "Widgets", "Svg", "DBus", "PrintSupport"]

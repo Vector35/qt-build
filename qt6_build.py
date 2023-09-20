@@ -19,6 +19,9 @@ build_opts = ["-no-static", "-release", "-opensource", "-confirm-license", "-nom
 	"-nomake", "tests", "-no-feature-tuiotouch", "-qt-libpng", "-qt-libjpeg", "-qt-libb2", "-no-glib",
 	"-qt-tiff", "-qt-webp", "-qt-pcre", "-no-feature-zstd", "-no-feature-brotli", "-no-feature-graphicseffect"]
 
+if sys.platform == 'linux':
+	build_opts += ["-xcb", "-xcb-xlib"]
+
 
 def remove_dir(path):
 	if sys.platform == 'win32':
@@ -282,8 +285,8 @@ if not args.no_clone:
 			if subprocess.call(["git", "clone", "git://code.qt.io/qt/qt5.git", qt_source_path]) != 0:
 				print("Failed to clone Qt git repository")
 				sys.exit(1)
-		if subprocess.call(["git", "checkout", f"v{qt_version}"], cwd=qt_source_path) != 0:
-			print("Failed to check out branch '{}'".format(qt_version))
+		if subprocess.call(["git", "checkout", qt_version], cwd=qt_source_path) != 0:
+			print("Failed to check out branch/tag '{}'".format(qt_version))
 			sys.exit(1)
 
 		init_repo_options = ["--module-subset=" + ",".join(qt_modules), "--no-update"]
@@ -354,7 +357,7 @@ if not args.no_clone:
 				if subprocess.call(["git", "clone", "https://codereview.qt-project.org/pyside/pyside-setup", pyside_source_path]) != 0:
 					print("Failed to clone PySide git repository")
 					sys.exit(1)
-			if subprocess.call(["git", "checkout", f"v{qt_version}"], cwd=pyside_source_path) != 0:
+			if subprocess.call(["git", "checkout", qt_version], cwd=pyside_source_path) != 0:
 				print("Failed to check out branch '{}'".format(qt_version))
 				sys.exit(1)
 
