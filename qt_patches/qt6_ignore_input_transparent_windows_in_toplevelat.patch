@@ -1,0 +1,13 @@
+diff --git a/qtbase/src/plugins/platforms/cocoa/qcocoascreen.mm b/qtbase/src/plugins/platforms/cocoa/qcocoascreen.mm
+index 0e5b704ca8..b594f680af 100644
+--- a/qtbase/src/plugins/platforms/cocoa/qcocoascreen.mm
++++ b/qtbase/src/plugins/platforms/cocoa/qcocoascreen.mm
+@@ -522,6 +522,8 @@ void flushOutput() {
+             QWindow *w = cocoaWindow->window();
+             if (!w->isVisible())
+                 return;
++            if (w->flags() & Qt::WindowTransparentForInput)
++                return;
+ 
+             if (!QHighDpi::toNativePixels(w->geometry(), w).contains(point))
+                 return;
