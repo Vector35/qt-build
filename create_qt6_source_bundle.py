@@ -125,7 +125,7 @@ if not args.skip_clone:
 		if subprocess.call(["git", "clone", "https://codereview.qt-project.org/pyside/pyside-setup", pyside_source_path]) != 0:
 			print("Failed to clone PySide git repository")
 			sys.exit(1)
-	if subprocess.call(["git", "checkout", f"v{qt_version}"], cwd=pyside_source_path) != 0:
+	if subprocess.call(["git", "checkout", qt_version], cwd=pyside_source_path) != 0:
 		print("Failed to check out branch '{}'".format(qt_version))
 		sys.exit(1)
 
