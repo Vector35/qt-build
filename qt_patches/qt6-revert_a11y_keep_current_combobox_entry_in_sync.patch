@@ -1,0 +1,56 @@
+diff --git a/qtbase/src/widgets/widgets/qcombobox.cpp b/qtbase/src/widgets/widgets/qcombobox.cpp
+index 9f6a6bb545..8c6703db46 100644
+--- a/qtbase/src/widgets/widgets/qcombobox.cpp
++++ b/qtbase/src/widgets/widgets/qcombobox.cpp
+@@ -2178,12 +2178,6 @@ void QComboBoxPrivate::setCurrentIndex(const QModelIndex &mi)
+         indexBeforeChange = -1;
+ 
+     if (indexChanged || modelResetToEmpty) {
+-        QItemSelectionModel::SelectionFlags selectionMode = QItemSelectionModel::ClearAndSelect;
+-        if (q->view()->selectionBehavior() == QAbstractItemView::SelectRows)
+-            selectionMode.setFlag(QItemSelectionModel::Rows);
+-        if (auto *model = q->view()->selectionModel())
+-            model->setCurrentIndex(currentIndex, selectionMode);
+-
+         q->update();
+         emitCurrentIndexChanged(currentIndex);
+     }
+@@ -2617,6 +2611,11 @@ void QComboBox::showPopup()
+         return;
+ #endif // Q_OS_MAC
+ 
++    // set current item and select it
++    QItemSelectionModel::SelectionFlags selectionMode = QItemSelectionModel::ClearAndSelect;
++    if (view()->selectionBehavior() == QAbstractItemView::SelectRows)
++        selectionMode.setFlag(QItemSelectionModel::Rows);
++    view()->selectionModel()->setCurrentIndex(d->currentIndex, selectionMode);
+     QComboBoxPrivateContainer* container = d->viewContainer();
+     QRect listRect(style->subControlRect(QStyle::CC_ComboBox, &opt,
+                                          QStyle::SC_ComboBoxListBoxPopup, this));
+diff --git a/qtbase/tests/auto/other/qaccessibility/tst_qaccessibility.cpp b/qtbase/tests/auto/other/qaccessibility/tst_qaccessibility.cpp
+index 455ccf3c35..5d8fff15eb 100644
+--- a/qtbase/tests/auto/other/qaccessibility/tst_qaccessibility.cpp
++++ b/qtbase/tests/auto/other/qaccessibility/tst_qaccessibility.cpp
+@@ -3711,8 +3711,6 @@ void tst_QAccessibility::comboBoxTest()
+     QCOMPARE(iface->text(QAccessible::Name), QLatin1String("one"));
+ #endif
+     QCOMPARE(iface->text(QAccessible::Value), QLatin1String("one"));
+-    QCOMPARE(combo.view()->selectionModel()->currentIndex().row(), 0);
+-
+     combo.setCurrentIndex(2);
+ #ifdef Q_OS_UNIX
+     QCOMPARE(iface->text(QAccessible::Name), QLatin1String("three"));
+@@ -3723,13 +3721,7 @@ void tst_QAccessibility::comboBoxTest()
+     QCOMPARE(listIface->role(), QAccessible::List);
+     QCOMPARE(listIface->childCount(), 3);
+ 
+-    QAccessibleSelectionInterface *selectionIface = listIface->selectionInterface();
+-    QVERIFY(selectionIface);
+-    QCOMPARE(selectionIface->selectedItemCount(), 1);
+-    QCOMPARE(listIface->indexOfChild(selectionIface->selectedItem(0)), 2);
+-
+     QVERIFY(!combo.view()->isVisible());
+-    QCOMPARE(combo.view()->selectionModel()->currentIndex().row(), 2);
+     QVERIFY(iface->actionInterface());
+     QCOMPARE(iface->actionInterface()->actionNames(), QStringList() << QAccessibleActionInterface::showMenuAction() << QAccessibleActionInterface::pressAction());
+     iface->actionInterface()->doAction(QAccessibleActionInterface::showMenuAction());
