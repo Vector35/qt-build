@@ -106,6 +106,7 @@ if args.asan:
 	build_opts.remove("-release")
 	build_opts += ["-debug", "-sanitize", "address"]
 	args.pyside = False
+	llvm_version += "-asan"
 
 if args.tsan:
 	print("Building with TSAN")
