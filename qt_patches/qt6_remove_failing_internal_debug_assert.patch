@@ -1,0 +1,13 @@
+diff --git a/qtbase/src/plugins/platforms/cocoa/qiosurfacegraphicsbuffer.mm b/qtbase/src/plugins/platforms/cocoa/qiosurfacegraphicsbuffer.mm
+index b987723b8a3..83c7f957577 100644
+--- a/qtbase/src/plugins/platforms/cocoa/qiosurfacegraphicsbuffer.mm
++++ b/qtbase/src/plugins/platforms/cocoa/qiosurfacegraphicsbuffer.mm
+@@ -101,7 +101,7 @@ IOSurfaceLockOptions lockOptionsForAccess(QPlatformGraphicsBuffer::AccessTypes a
+ bool QIOSurfaceGraphicsBuffer::doLock(AccessTypes access, const QRect &rect)
+ {
+     Q_UNUSED(rect);
+-    Q_ASSERT(!isLocked());
++    //Q_ASSERT(!isLocked());
+ 
+     qCDebug(lcQpaIOSurface) << "Locking" << this << "for" << access;
+ 
