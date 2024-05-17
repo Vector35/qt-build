@@ -34,23 +34,23 @@ def remove_dir(path):
 
 
 def keychain_unlocker():
-    keychain_unlocker = os.environ["HOME"] + "/unlock-keychain"
-    if os.path.exists(keychain_unlocker):
-        return subprocess.call([keychain_unlocker]) == 0
-    return True
+	keychain_unlocker = os.environ["HOME"] + "/unlock-keychain"
+	if os.path.exists(keychain_unlocker):
+		return subprocess.call([keychain_unlocker]) == 0
+	return True
 
 
 def mac_sign(path):
-    if not keychain_unlocker():
-        return False
+	if not keychain_unlocker():
+		return False
 
-    args = ["codesign", "-f", "--options", "runtime", "--timestamp", "-s", "Developer ID"]
-    if path.endswith(".dmg"):
-        args.append(path)
-    else:
-        for f in glob.glob(path):
-            args.append(f)
-    return subprocess.call(args) == 0
+	args = ["codesign", "-f", "--options", "runtime", "--timestamp", "-s", "Developer ID"]
+	if path.endswith(".dmg"):
+		args.append(path)
+	else:
+		for f in glob.glob(path):
+			args.append(f)
+	return subprocess.call(args) == 0
 
 
 def signWindowsFiles(path):
@@ -540,6 +540,9 @@ if args.pyside:
 	if sys.platform == 'darwin':
 		if platform.processor() == 'arm' and args.universal:
 			os.environ["CMAKE_OSX_ARCHITECTURES"] = "arm64;x86_64"
+	if subprocess.call([python3_cmd, "-m", "pip", "install", "-r", "requirements.txt"], cwd=pyside_build_path) != 0:
+		print("Python 3 bindings failed to install package dependencies")
+		sys.exit(1)
 	if subprocess.call([python3_cmd, "setup.py", "build", "--standalone", "--limited-api=yes",
 		"--module-subset=" + ",".join(pyside_modules),
 		"--qt-target-path=" + str(install_path),

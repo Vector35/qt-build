@@ -1,0 +1,15 @@
+[tool.poetry]
+name = "qt-build"
+version = "1.0.0"
+description = "The build process and patches for Qt and related sub-projects for use in Binary Ninja."
+authors = ["Rusty Wagner <rusty@vector35.com>", "Alexander Taylor <alex@vector35.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.9"
+pathlib = "^1.0.1"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

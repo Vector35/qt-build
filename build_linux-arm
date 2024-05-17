@@ -1,3 +1,5 @@
 #!/bin/bash
-
-python3 -u ./qt6_build.py "$@"
+export PATH=~/.local/bin:$PATH
+export PYTHONUNBUFFERED=1
+poetry install --sync --no-root
+poetry run python3 -u ./qt6_build.py "$@"

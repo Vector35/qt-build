@@ -1,2 +1,4 @@
 @echo off
-py -3 -u qt6_build.py %*
+set PYTHONUNBUFFERED=1
+poetry install --sync --no-root
+poetry run py -3 -u qt6_build.py %*
