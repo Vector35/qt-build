@@ -555,7 +555,7 @@ if args.pyside:
 		remove_dir(pyside_install_path)
 	os.makedirs(os.path.join(pyside_install_path, "site-packages"))
 
-	for bundle in glob.glob(os.path.join(pyside_build_path, "build", "qfp*")):
+	for bundle in glob.glob(os.path.join(pyside_build_path, "build", "qt-build*")):
 		shutil.copytree(os.path.join(bundle, "package_for_wheels", "PySide6"), os.path.join(pyside_install_path, "site-packages", "PySide6"))
 		shutil.copytree(os.path.join(bundle, "package_for_wheels", "shiboken6"), os.path.join(pyside_install_path, "site-packages", "shiboken6"))
 		shutil.copytree(os.path.join(bundle, "package_for_wheels", "shiboken6_generator"), os.path.join(pyside_install_path, "site-packages", "shiboken6_generator"))
