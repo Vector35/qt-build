@@ -9,5 +9,5 @@ index 0e5b704ca8..b594f680af 100644
 +            if (w->flags() & Qt::WindowTransparentForInput)
 +                return;
  
-             if (!QHighDpi::toNativePixels(w->geometry(), w).contains(point))
-                 return;
+             auto nativeGeometry = QHighDpi::toNativePixels(w->geometry(), w);
+             if (!nativeGeometry.contains(point))

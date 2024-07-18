@@ -56,7 +56,7 @@ index c04a699a56c..16b6f0bef60 100644
      if (QAccessible::isActive()) {
          QAccessibleTableModelChangeEvent accessibleEvent(this, QAccessibleTableModelChangeEvent::DataChanged);
          accessibleEvent.setFirstRow(topLeft.row());
-@@ -3543,7 +3543,7 @@ void QAbstractItemViewPrivate::_q_rowsRemoved(const QModelIndex &index, int star
+@@ -3543,7 +3543,7 @@ void QAbstractItemViewPrivate::rowsRemoved(const QModelIndex &index, int star
      if (q->isVisible())
          q->updateEditorGeometries();
      q->setState(QAbstractItemView::NoState);
@@ -65,7 +65,7 @@ index c04a699a56c..16b6f0bef60 100644
      if (QAccessible::isActive()) {
          QAccessibleTableModelChangeEvent accessibleEvent(q, QAccessibleTableModelChangeEvent::RowsRemoved);
          accessibleEvent.setFirstRow(start);
-@@ -3634,7 +3634,7 @@ void QAbstractItemViewPrivate::_q_columnsRemoved(const QModelIndex &index, int s
+@@ -3634,7 +3634,7 @@ void QAbstractItemViewPrivate::columnsRemoved(const QModelIndex &index, int s
      if (q->isVisible())
          q->updateEditorGeometries();
      q->setState(QAbstractItemView::NoState);
@@ -74,7 +74,7 @@ index c04a699a56c..16b6f0bef60 100644
      if (QAccessible::isActive()) {
          QAccessibleTableModelChangeEvent accessibleEvent(q, QAccessibleTableModelChangeEvent::ColumnsRemoved);
          accessibleEvent.setFirstColumn(start);
-@@ -3657,7 +3657,7 @@ void QAbstractItemViewPrivate::_q_rowsInserted(const QModelIndex &index, int sta
+@@ -3657,7 +3657,7 @@ void QAbstractItemViewPrivate::rowsInserted(const QModelIndex &index, int sta
      Q_UNUSED(start);
      Q_UNUSED(end);
  
@@ -83,7 +83,7 @@ index c04a699a56c..16b6f0bef60 100644
      Q_Q(QAbstractItemView);
      if (QAccessible::isActive()) {
          QAccessibleTableModelChangeEvent accessibleEvent(q, QAccessibleTableModelChangeEvent::RowsInserted);
-@@ -3683,7 +3683,7 @@ void QAbstractItemViewPrivate::_q_columnsInserted(const QModelIndex &index, int
+@@ -3683,7 +3683,7 @@ void QAbstractItemViewPrivate::columnsInserted(const QModelIndex &index, int
      Q_Q(QAbstractItemView);
      if (q->isVisible())
          q->updateEditorGeometries();
@@ -92,8 +92,8 @@ index c04a699a56c..16b6f0bef60 100644
      if (QAccessible::isActive()) {
          QAccessibleTableModelChangeEvent accessibleEvent(q, QAccessibleTableModelChangeEvent::ColumnsInserted);
          accessibleEvent.setFirstColumn(start);
-@@ -3711,7 +3711,7 @@ void QAbstractItemViewPrivate::_q_modelDestroyed()
- void QAbstractItemViewPrivate::_q_layoutChanged()
+@@ -3711,7 +3711,7 @@ void QAbstractItemViewPrivate::modelDestroyed()
+ void QAbstractItemViewPrivate::layoutChanged()
  {
      doDelayedItemsLayout();
 -#if QT_CONFIG(accessibility)
@@ -130,7 +130,7 @@ index a4cb4c76fbc..2b966578c45 100644
 -#if QT_CONFIG(accessibility)
 +#if QT_CONFIG(accessibility) && !defined(Q_OS_MACOS)
      if (QAccessible::isActive()) {
-         if (current.isValid()) {
+         if (current.isValid() && hasFocus()) {
              int entry = visualIndex(current);
 @@ -3424,7 +3424,7 @@ void QListView::currentChanged(const QModelIndex &current, const QModelIndex &pr
  void QListView::selectionChanged(const QItemSelection &selected,
@@ -161,7 +161,7 @@ index 9d6499de5b9..d4c4da32ab4 100644
 -#if QT_CONFIG(accessibility)
 +#if QT_CONFIG(accessibility) && !defined(Q_OS_MACOS)
      if (QAccessible::isActive()) {
-         if (current.isValid()) {
+         if (current.isValid() && hasFocus()) {
              Q_D(QTableView);
 @@ -3498,7 +3498,7 @@ void QTableView::selectionChanged(const QItemSelection &selected,
  {
@@ -173,7 +173,7 @@ index 9d6499de5b9..d4c4da32ab4 100644
          // ### does not work properly for selection ranges.
          QModelIndex sel = selected.indexes().value(0);
 diff --git a/qtbase/src/widgets/itemviews/qtreeview.cpp b/qtbase/src/widgets/itemviews/qtreeview.cpp
-index 7454fb83a7c..be071310715 100644
+index 744f29ca17..b638c7292d 100644
 --- a/qtbase/src/widgets/itemviews/qtreeview.cpp
 +++ b/qtbase/src/widgets/itemviews/qtreeview.cpp
 @@ -15,7 +15,7 @@
@@ -185,7 +185,16 @@ index 7454fb83a7c..be071310715 100644
  #include <qaccessible.h>
  #endif
  
-@@ -3352,7 +3352,7 @@ void QTreeViewPrivate::layout(int i, bool recursiveExpanding, bool afterIsUninit
+@@ -3356,7 +3356,7 @@ void QTreeViewPrivate::columnsRemoved(const QModelIndex &parent, int start, int
+ 
+ void QTreeViewPrivate::updateAccessibility()
+ {
+-#if QT_CONFIG(accessibility)
++#if QT_CONFIG(accessibility) && !defined(Q_OS_MACOS)
+     Q_Q(QTreeView);
+     if (pendingAccessibilityUpdate) {
+         pendingAccessibilityUpdate = false;
+@@ -3389,7 +3389,7 @@ void QTreeViewPrivate::layout(int i, bool recursiveExpanding, bool afterIsUninit
          return;
      }
  
@@ -194,16 +203,18 @@ index 7454fb83a7c..be071310715 100644
      // QAccessibleTree's rowCount implementation uses viewItems.size(), so
      // we need to invalidate any cached accessibility data structures if
      // that value changes during the run of this function.
-@@ -4035,7 +4035,7 @@ void QTreeView::currentChanged(const QModelIndex &current, const QModelIndex &pr
+@@ -4069,8 +4069,8 @@ void QTreeView::currentChanged(const QModelIndex &current, const QModelIndex &pr
          if (current.isValid())
              viewport()->update(d->visualRect(current, QTreeViewPrivate::FullRow));
      }
 -#if QT_CONFIG(accessibility)
+-    if (QAccessible::isActive() && current.isValid() && hasFocus()) {
 +#if QT_CONFIG(accessibility) && !defined(Q_OS_MACOS)
-     if (QAccessible::isActive() && current.isValid()) {
++    if (QAccessible::isActive() && current.isValid()) {
          Q_D(QTreeView);
  
-@@ -4053,7 +4053,7 @@ void QTreeView::selectionChanged(const QItemSelection &selected,
+         QAccessibleEvent event(this, QAccessible::Focus);
+@@ -4087,7 +4087,7 @@ void QTreeView::selectionChanged(const QItemSelection &selected,
                                   const QItemSelection &deselected)
  {
      QAbstractItemView::selectionChanged(selected, deselected);

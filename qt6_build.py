@@ -441,7 +441,7 @@ if sys.platform == 'darwin':
 					if not os.path.isfile(os.path.join(root, filename)):
 						continue
 					header = open(os.path.join(root, filename), 'rb').read(4)
-					if header != b"\xcf\xfa\xed\xfe":
+					if header != b"\xcf\xfa\xed\xfe" and header != b"!<ar":
 						continue
 					subprocess.call(["lipo", "-create", os.path.join(build_path, "target_x86_64", rel_path, filename),
 						os.path.join(build_path, "target_arm64", rel_path, filename), "-output", os.path.join(root, filename)])
@@ -543,7 +543,7 @@ if args.pyside:
 	if subprocess.call([python3_cmd, "-m", "pip", "install", "-r", "requirements.txt"], cwd=pyside_build_path) != 0:
 		print("Python 3 bindings failed to install package dependencies")
 		sys.exit(1)
-	if subprocess.call([python3_cmd, "setup.py", "build", "--standalone", "--limited-api=yes",
+	if subprocess.call([python3_cmd, "setup.py", "build", "--standalone", "--limited-api=yes", "--no-unity",
 		"--module-subset=" + ",".join(pyside_modules),
 		"--qt-target-path=" + str(install_path),
 		"--qtpaths=" + str(qtpaths),"--macos-deployment-target=" + min_macos] + parallel, cwd=pyside_build_path) != 0:
@@ -555,7 +555,8 @@ if args.pyside:
 		remove_dir(pyside_install_path)
 	os.makedirs(os.path.join(pyside_install_path, "site-packages"))
 
-	for bundle in glob.glob(os.path.join(pyside_build_path, "build", "qt-build*")):
+	for bundle in glob.glob(os.path.join(pyside_build_path, "build", "qt-build*")) + glob.glob(
+			os.path.join(pyside_build_path, "build", "qfp*")):
 		shutil.copytree(os.path.join(bundle, "package_for_wheels", "PySide6"), os.path.join(pyside_install_path, "site-packages", "PySide6"))
 		shutil.copytree(os.path.join(bundle, "package_for_wheels", "shiboken6"), os.path.join(pyside_install_path, "site-packages", "shiboken6"))
 		shutil.copytree(os.path.join(bundle, "package_for_wheels", "shiboken6_generator"), os.path.join(pyside_install_path, "site-packages", "shiboken6_generator"))
