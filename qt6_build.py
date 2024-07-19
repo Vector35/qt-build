@@ -17,7 +17,8 @@ from target_qt6_version import qt_version, llvm_version, msvc_build, msvc_dir_na
 
 build_opts = ["-no-static", "-release", "-opensource", "-confirm-license", "-nomake", "examples",
 	"-nomake", "tests", "-no-feature-tuiotouch", "-qt-libpng", "-qt-libjpeg", "-qt-libb2", "-no-glib",
-	"-qt-tiff", "-qt-webp", "-qt-pcre", "-no-feature-zstd", "-no-feature-brotli", "-no-feature-graphicseffect"]
+	"-qt-tiff", "-qt-webp", "-qt-pcre", "-no-feature-zstd", "-no-feature-brotli", "-no-feature-graphicseffect",
+	"-no-feature-style-windowsvista", "-no-feature-style-windows11"]
 
 if sys.platform == 'linux':
 	build_opts += ["-xcb", "-xcb-xlib"]
