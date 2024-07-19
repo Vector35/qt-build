@@ -356,12 +356,10 @@ if not args.no_clone:
 					print("Failed to clone PySide git repository")
 					sys.exit(1)
 			else:
-				if subprocess.call(["git", "clone", "https://codereview.qt-project.org/pyside/pyside-setup", pyside_source_path]) != 0:
+				if subprocess.call(["git", "clone", "-b", qt_version, "--depth", "1",
+									"https://codereview.qt-project.org/pyside/pyside-setup", pyside_source_path]) != 0:
 					print("Failed to clone PySide git repository")
 					sys.exit(1)
-			if subprocess.call(["git", "checkout", qt_version], cwd=pyside_source_path) != 0:
-				print("Failed to check out branch '{}'".format(qt_version))
-				sys.exit(1)
 
 			for patch in pyside_patches:
 				print(f"\nApplying patch {patch}...")
