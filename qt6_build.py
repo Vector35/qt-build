@@ -122,6 +122,8 @@ mirror = []
 if args.mirror:
 	print(f"Using source mirror: {args.mirror}")
 	mirror = ["--mirror", args.mirror]
+else:
+	mirror = ["--mirror", "https://github.com/qt/"]
 
 if sys.version_info.major < 3:
 	print('Please build Qt 6 with Python 3')
@@ -282,7 +284,7 @@ if not args.no_clone:
 				print("Failed to clone Qt git repository")
 				sys.exit(1)
 		else:
-			if subprocess.call(["git", "clone", "git://code.qt.io/qt/qt5.git", qt_source_path]) != 0:
+			if subprocess.call(["git", "clone", "https://github.com/qt/qt5.git", qt_source_path]) != 0:
 				print("Failed to clone Qt git repository")
 				sys.exit(1)
 		if subprocess.call(["git", "checkout", qt_version], cwd=qt_source_path) != 0:
