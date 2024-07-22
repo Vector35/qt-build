@@ -1,0 +1,12 @@
+diff --git a/qtbase/src/widgets/dialogs/qmessagebox.cpp b/qtbase/src/widgets/dialogs/qmessagebox.cpp
+index f24cd905cc..a7be216aba 100644
+--- a/qtbase/src/widgets/dialogs/qmessagebox.cpp
++++ b/qtbase/src/widgets/dialogs/qmessagebox.cpp
+@@ -2851,7 +2851,6 @@ bool QMessageBoxPrivate::canBeNativeDialog() const
+         return true;
+     if (QCoreApplication::testAttribute(Qt::AA_DontUseNativeDialogs)
+         || q->testAttribute(Qt::WA_DontShowOnScreen)
+-        || q->testAttribute(Qt::WA_StyleSheet)
+         || (options->options() & QMessageDialogOptions::Option::DontUseNativeDialog)) {
+         return false;
+     }
