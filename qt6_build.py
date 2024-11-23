@@ -538,29 +538,49 @@ if args.pyside:
 	if os.path.exists(pyside_build_path):
 		remove_dir(pyside_build_path)
 	shutil.copytree(pyside_source_path, pyside_build_path)
+	if os.path.exists(pyside_install_path):
+		remove_dir(pyside_install_path)
 	if sys.platform == 'darwin':
 		if platform.processor() == 'arm' and args.universal:
 			os.environ["CMAKE_OSX_ARCHITECTURES"] = "arm64;x86_64"
 	if subprocess.call([python3_cmd, "-m", "pip", "install", "-r", "requirements.txt"], cwd=pyside_build_path) != 0:
 		print("Python 3 bindings failed to install package dependencies")
 		sys.exit(1)
-	if subprocess.call([python3_cmd, "setup.py", "build", "--standalone", "--limited-api=yes", "--no-unity",
-		"--module-subset=" + ",".join(pyside_modules),
-		"--qt-target-path=" + str(install_path),
-		"--qtpaths=" + str(qtpaths),"--macos-deployment-target=" + min_macos] + parallel, cwd=pyside_build_path) != 0:
+	if subprocess.call([python3_cmd, "setup.py", "install", "--standalone", "--limited-api=yes", "--no-unity",
+			"--module-subset=" + ",".join(pyside_modules),
+			"--qt-target-path=" + str(install_path),
+			"--qtpaths=" + str(qtpaths),
+			"--macos-deployment-target=" + min_macos,
+			"--prefix=" + str(pyside_install_path),
+		] + parallel, cwd=pyside_build_path) != 0:
 		print("Python 3 bindings failed to build")
 		sys.exit(1)
 
-	print("\nInstalling Python 3 bindings...")
-	if os.path.exists(pyside_install_path):
-		remove_dir(pyside_install_path)
-	os.makedirs(os.path.join(pyside_install_path, "site-packages"))
+	if sys.platform.startswith("win"):
+		# pyside/Lib/site-packages -> pyside/site-packages
+		# For compatibility with our previous build format
+		shutil.move(pyside_install_path / 'Lib' / 'site-packages', pyside_install_path)
 
-	for bundle in glob.glob(os.path.join(pyside_build_path, "build", "qt-build*")) + glob.glob(
-			os.path.join(pyside_build_path, "build", "qfp*")):
-		shutil.copytree(os.path.join(bundle, "package_for_wheels", "PySide6"), os.path.join(pyside_install_path, "site-packages", "PySide6"))
-		shutil.copytree(os.path.join(bundle, "package_for_wheels", "shiboken6"), os.path.join(pyside_install_path, "site-packages", "shiboken6"))
-		shutil.copytree(os.path.join(bundle, "package_for_wheels", "shiboken6_generator"), os.path.join(pyside_install_path, "site-packages", "shiboken6_generator"))
+		# pyside/Scripts/shiboken6-genpyi.exe -> pyside/site-packages/shiboken6_generator/
+		# pyside/Scripts/shiboken6-genpyi-script.py -> pyside/site-packages/shiboken6_generator/
+		shutil.move(pyside_install_path / 'Scripts' / 'shiboken6-genpyi.exe', pyside_install_path / 'site-packages' / 'shiboken6_generator')
+		shutil.move(pyside_install_path / 'Scripts' / 'shiboken6-genpyi-script.py', pyside_install_path / 'site-packages' / 'shiboken6_generator')
+
+		# And we don't care about the rest of the Scripts folder
+		shutil.rmtree(pyside_install_path / 'Scripts')
+	else:
+		# pyside/lib/python3.9/site-packages -> pyside/site-packages
+		# For compatibility with our previous build format
+		for pydir in (pyside_install_path / 'lib').glob('python3.*'):
+			shutil.move(pydir / 'site-packages', pyside_install_path)
+			shutil.rmtree(pydir)
+			break
+
+		# pyside/bin/shiboken6-genpyi -> pyside/site-packages/shiboken6_generator/
+		shutil.move(pyside_install_path / 'bin' / 'shiboken6-genpyi', pyside_install_path / 'site-packages' / 'shiboken6_generator')
+
+		# And we don't care about the rest of the bin folder
+		shutil.rmtree(pyside_install_path / 'bin')
 
 	if sys.platform == 'linux' and llvm_dir:
 		# Newer versions of PySide don't link to libclang in a way that works after the build, copy over
