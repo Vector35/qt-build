@@ -1,0 +1,25 @@
+diff --git forkSrcPrefix/sources/shiboken6/shibokenmodule/files.dir/shibokensupport/signature/parser.py forkDstPrefix/sources/shiboken6/shibokenmodule/files.dir/shibokensupport/signature/parser.py
+index 9b48ab44291f2f489c5d2a1ad0404271826c3f9b..c42660f24d357b4330ddcf94c93834b7f710ea7d 100644
+--- forkSrcPrefix/sources/shiboken6/shibokenmodule/files.dir/shibokensupport/signature/parser.py
++++ forkDstPrefix/sources/shiboken6/shibokenmodule/files.dir/shibokensupport/signature/parser.py
+@@ -144,7 +144,7 @@ def _parse_line(line):
+             tokens = 2 * tokens     # "self: self"
+         if len(tokens) != 2:
+             # This should never happen again (but who knows?)
+-            raise SystemError(f'Invalid argument "{arg}" in "{line}".')
++            tokens = tokens[0], ":".join(tokens[1:])
+         name, ann = tokens
+         if name in keyword.kwlist:
+             if LIST_KEYWORDS:
+diff --git forkSrcPrefix/sources/shiboken6/shibokenmodule/files.dir/shibokensupport/signature/lib/pyi_generator.py forkDstPrefix/sources/shiboken6/shibokenmodule/files.dir/shibokensupport/signature/lib/pyi_generator.py
+index ce12dd6c8d1331f6905c0ec0e652b2beb449bcd0..258c08b7218672287bec002347050b3f23a69040 100644
+--- forkSrcPrefix/sources/shiboken6/shibokenmodule/files.dir/shibokensupport/signature/lib/pyi_generator.py
++++ forkDstPrefix/sources/shiboken6/shibokenmodule/files.dir/shibokensupport/signature/lib/pyi_generator.py
+@@ -172,6 +172,7 @@ class Formatter(Writer):
+ 
+ 
+ def find_imports(text):
++    import PySide6
+     return [imp for imp in PySide6.__all__ if f"PySide6.{imp}." in text]
+ 
+ 
