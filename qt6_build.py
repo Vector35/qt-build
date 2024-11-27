@@ -353,7 +353,8 @@ if not args.no_clone:
 		else:
 			print("\nCloning pyside-setup...")
 			if args.mirror:
-				if subprocess.call(["git", "clone", f"{args.mirror}pyside-setup", pyside_source_path]) != 0:
+				if subprocess.call(["git", "clone", "-b", qt_version, "--depth", "1",
+									f"{args.mirror}pyside-setup", pyside_source_path]) != 0:
 					print("Failed to clone PySide git repository")
 					sys.exit(1)
 			else:
