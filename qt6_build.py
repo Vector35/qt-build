@@ -583,6 +583,14 @@ if args.pyside:
 		# And we don't care about the rest of the bin folder
 		shutil.rmtree(pyside_install_path / 'bin')
 
+		# Replace shebang (which is like /Users/jenkins/etc) with a real python
+		with open(pyside_install_path / 'site-packages' / 'shiboken6_generator' / 'shiboken6-genpyi', 'r') as genpyi_f:
+			conts = "#!/usr/bin/env python3\n"
+			genpyi_f.readline()
+			conts += genpyi_f.read()
+		with open(pyside_install_path / 'site-packages' / 'shiboken6_generator' / 'shiboken6-genpyi', 'w') as genpyi_f:
+			genpyi_f.write(conts)
+
 	if sys.platform == 'linux' and llvm_dir:
 		# Newer versions of PySide don't link to libclang in a way that works after the build, copy over
 		# the correct version of libclang
