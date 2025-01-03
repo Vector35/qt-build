@@ -1,0 +1,12 @@
+diff --git a/sources/shiboken6/shibokenmodule/files.dir/shibokensupport/signature/lib/pyi_generator.py b/sources/shiboken6/shibokenmodule/files.dir/shibokensupport/signature/lib/pyi_generator.py
+index c72946f7c..a85d7da59 100644
+--- a/sources/shiboken6/shibokenmodule/files.dir/shibokensupport/signature/lib/pyi_generator.py
++++ b/sources/shiboken6/shibokenmodule/files.dir/shibokensupport/signature/lib/pyi_generator.py
+@@ -19,6 +19,7 @@ import logging
+ import re
+ import sys
+ import typing
++import os
+ 
+ from pathlib import Path
+ from contextlib import contextmanager

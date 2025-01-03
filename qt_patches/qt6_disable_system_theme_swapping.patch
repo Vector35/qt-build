@@ -1,17 +1,15 @@
 diff --git a/qtbase/src/plugins/platforms/cocoa/qcocoatheme.mm b/qtbase/src/plugins/platforms/cocoa/qcocoatheme.mm
-index 56171b6dc2..2a55166ecc 100644
+index 6d15e8e5d2c..6eb90f3c419 100644
 --- a/qtbase/src/plugins/platforms/cocoa/qcocoatheme.mm
 +++ b/qtbase/src/plugins/platforms/cocoa/qcocoatheme.mm
-@@ -213,18 +213,6 @@ inline QMacPaletteMap(QPlatformTheme::Palette p, NSColor *a, NSColor *i) :
+@@ -213,16 +213,6 @@ inline QMacPaletteMap(QPlatformTheme::Palette p, NSColor *a, NSColor *i) :
  QCocoaTheme::QCocoaTheme()
      : m_systemPalette(nullptr)
  {
--    if (QOperatingSystemVersion::current() >= QOperatingSystemVersion::MacOSMojave) {
--        m_appearanceObserver = QMacKeyValueObserver(NSApp, @"effectiveAppearance", [this] {
--            NSAppearance.currentAppearance = NSApp.effectiveAppearance;
--            handleSystemThemeChange();
--        });
--    }
+-    m_appearanceObserver = QMacKeyValueObserver(NSApp, @"effectiveAppearance", [this] {
+-        NSAppearance.currentAppearance = NSApp.effectiveAppearance;
+-        handleSystemThemeChange();
+-    });
 -
 -    m_systemColorObserver = QMacNotificationObserver(nil,
 -        NSSystemColorsDidChangeNotification, [this] {
