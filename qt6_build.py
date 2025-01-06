@@ -294,7 +294,7 @@ if not args.no_clone:
 
 		init_repo_options = ["--module-subset=" + ",".join(qt_modules), "--no-update"]
 		if sys.platform == 'win32':
-			if subprocess.call(["perl", os.path.join(qt_source_path, "init-repository")] + init_repo_options + mirror, cwd=qt_source_path) != 0:
+			if subprocess.call(["perl", os.path.join(qt_source_path, "init-repository.pl")] + init_repo_options + mirror, cwd=qt_source_path) != 0:
 				print("Failed to initialize submodules")
 				sys.exit(1)
 		else:
