@@ -54,12 +54,22 @@ def mac_sign(path):
 	return subprocess.call(args) == 0
 
 
-def signWindowsFiles(path):
-	timeServers = [r"http://timestamp.digicert.com", r"http://timestamp.comodoca.com/rfc3161"]
-	signTool = r"c:\Program Files (x86)\Windows Kits\10\bin\10.0.18362.0\x64\signtool.exe"
-	signingCert = os.path.expandvars(r"%USERPROFILE%\signingcerts\codesign.pfx")
+def signWindowsFiles(path: str):
+	timeServers = ["http://timestamp.digicert.com", "http://timestamp.comodoca.com/rfc3161"]
 	for timeServer in timeServers:
-		proc = subprocess.run([signTool, "sign", "/fd", "sha256", "/f", signingCert, "/tr", timeServer, "/td", "sha256", path], shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+		proc = subprocess.run([
+			"java", "-jar",
+			"C:\\Users\\jenkins\\Downloads\\jsign-7.0.jar",
+			"--name", "Binary Ninja",
+			"--url", "https://binary.ninja/",
+			"--storetype", "PIV",
+			"--storepass", os.environ['YUBIKEY_PIN'],
+			"--tsaurl", timeServer,
+			"--tsmode", "RFC3161",
+			"--alias", "AUTHENTICATION",
+			"--certfile", "C:\\Users\\jenkins\\documents\\yubi-1-user.crt",
+			path
+		], shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 		if proc.returncode == 0:
 			print("Signed {}".format(path))
 			return True
@@ -580,6 +590,10 @@ if args.pyside:
 
 		# And we don't care about the rest of the Scripts folder
 		shutil.rmtree(pyside_install_path / 'Scripts')
+
+		# Newer versions of PySide don't link to libclang in a way that works after the build, copy over
+		# the correct version of libclang
+		shutil.copy(os.path.join(llvm_dir, "bin", "libclang.dll"), os.path.join(pyside_install_path, "site-packages", "shiboken6_generator", "libclang.dll"), follow_symlinks=False)
 	else:
 		# pyside/lib/python3.9/site-packages -> pyside/site-packages
 		# For compatibility with our previous build format
