@@ -265,11 +265,13 @@ if args.pyside:
 		for patch in pyside_patches:
 			print(f"Apply PySide patch: {patch}")
 
-if sys.platform.startswith("win") and len(str(qt_dir)) > 30:
+if sys.platform.startswith("win") and len(str(qt_dir)) > 40:
 	# I cannot believe this is a real issue and yet there went 30 minutes of my life
 	print()
-	print("\u26a0\ufe0f Your build directory is too long and Windows will probably give you weird errors about files not being found")
-	print("\u26a0\ufe0f You can try building anyway, though! Godspeed!")
+	print("\xF0\x9F\x9A\xAB Your build directory is too long and Windows will probably give you weird errors about files not being found")
+	print("\xF0\x9F\x9A\xAB You can try building anyway, though! Godspeed!")
+	if not args.prompt:
+		sys.exit(1)
 
 if args.prompt and input("\nIs this correct (y/n)? ") != "y":
 	print("Aborted")
