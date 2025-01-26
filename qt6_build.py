@@ -166,13 +166,19 @@ else:
 if sys.platform == 'win32':
 	os.environ["HOME"] = os.environ["HOMEDRIVE"] + os.environ["HOMEPATH"]
 
+# Copy libclang to the build directory
+if os.path.exists(f'./artifacts-extern/artifacts/libclang-{llvm_version}.zip'):
+	with zipfile.ZipFile(f'./artifacts-extern/artifacts/libclang-{llvm_version}.zip') as zf:
+		zf.extractall('build')
+		os.environ['LLVM_INSTALL_DIR'] = os.path.realpath('build/libclang')
+
 if "LLVM_INSTALL_DIR" in os.environ:
 	llvm_dir = os.path.join(os.environ["LLVM_INSTALL_DIR"], llvm_version)
 else:
 	llvm_dir = os.path.join(os.environ["HOME"], "libclang", llvm_version)
 if not os.path.exists(llvm_dir):
 	print("libclang needs to be installed.")
-	print(f'Set LLVM_INSTALL_DIR, or install to f{os.path.join(os.environ["HOME"], "libclang", llvm_version)}')
+	print(f'Set LLVM_INSTALL_DIR, or install to {os.path.join(os.environ["HOME"], "libclang", llvm_version)}')
 	sys.exit(1)
 os.environ["LLVM_INSTALL_DIR"] = llvm_dir
 
