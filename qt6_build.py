@@ -93,6 +93,7 @@ parser.add_argument("--mirror", help="use source mirror", action="store")
 parser.add_argument("--sign", dest='sign', help="sign all executables", action="store_true")
 parser.add_argument("--qt-source", help="use Qt source directory", action="store")
 parser.add_argument("--pyside-source", help="use PySide source directory", action="store")
+parser.add_argument("--build-dir", dest="build_dir", help="Custom build directory to bypass windows PATH_MAX limits", action="store")
 
 if not sys.platform.startswith("win"):
 	parser.add_argument("-j", "--jobs", dest='jobs', default=ceil(os.cpu_count()*1.1), help="Number of build threads (Defaults to 1.1*cpu_count)")
@@ -166,7 +167,11 @@ if not os.path.exists(llvm_dir):
 os.environ["LLVM_INSTALL_DIR"] = llvm_dir
 
 base_dir = Path(__file__).resolve().parent
-qt_dir = base_dir / "build"
+if args.build_dir is not None:
+	qt_dir = Path(args.build_dir).resolve()
+else:
+	qt_dir = base_dir / "build"
+
 source_path = qt_dir / "src"
 qt_source_path = source_path / "qt"
 build_path = source_path / "build"
@@ -243,6 +248,12 @@ if args.pyside:
 	else:
 		for patch in pyside_patches:
 			print(f"Apply PySide patch: {patch}")
+
+if sys.platform.startswith("win") and len(str(qt_dir)) > 30:
+	# I cannot believe this is a real issue and yet there went 30 minutes of my life
+	print()
+	print("\u26a0\ufe0f Your build directory is too long and Windows will probably give you weird errors about files not being found")
+	print("\u26a0\ufe0f You can try building anyway, though! Godspeed!")
 
 if args.prompt and input("\nIs this correct (y/n)? ") != "y":
 	print("Aborted")
