@@ -59,7 +59,7 @@ def signWindowsFiles(path: str):
 	for timeServer in timeServers:
 		proc = subprocess.run([
 			"java", "-jar",
-			"C:\\Users\\jenkins\\Downloads\\jsign-7.0.jar",
+			"C:\\jenkins\\jsign.jar",
 			"--name", "Binary Ninja",
 			"--url", "https://binary.ninja/",
 			"--storetype", "PIV",
@@ -67,7 +67,7 @@ def signWindowsFiles(path: str):
 			"--tsaurl", timeServer,
 			"--tsmode", "RFC3161",
 			"--alias", "AUTHENTICATION",
-			"--certfile", "C:\\Users\\jenkins\\documents\\yubi-1-user.crt",
+			"--certfile", "C:\\jenkins\\yubi-1-user.crt",
 			path
 		], shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 		if proc.returncode == 0:
