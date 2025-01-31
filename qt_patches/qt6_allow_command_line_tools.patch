@@ -1,0 +1,19 @@
+diff --git a/qtbase/cmake/QtPublicAppleHelpers.cmake b/qtbase/cmake/QtPublicAppleHelpers.cmake
+index ad7dd05e0b5..e7d718d8f18 100644
+--- a/qtbase/cmake/QtPublicAppleHelpers.cmake
++++ b/qtbase/cmake/QtPublicAppleHelpers.cmake
+@@ -929,14 +929,6 @@ function(_qt_internal_check_apple_sdk_and_xcode_versions)
+         )
+     endif()
+
+-    if(xcode_version VERSION_LESS min_xcode_version AND NOT QT_NO_XCODE_MIN_VERSION_CHECK)
+-        message(${message_type}
+-            "Qt requires at least version ${min_xcode_version} of Xcode, "
+-            "you're building against version ${xcode_version}. Please upgrade."
+-            ${extra_message}
+-        )
+-    endif()
+-
+     if(QT_NO_APPLE_SDK_MAX_VERSION_CHECK)
+         return()
+     endif()

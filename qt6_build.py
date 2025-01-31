@@ -141,6 +141,10 @@ if sys.version_info.major < 3:
 	print('Please build Qt 6 with Python 3')
 	exit(1)
 
+if args.pyside and "VIRTUAL_ENV" not in os.environ:
+    print('Running under Poetry is required to build PySide')
+    exit(1)
+
 if sys.platform.startswith("win"):
 	make_cmd = "ninja"
 	parallel = []
@@ -342,7 +346,15 @@ if not args.no_clone:
 			open(os.path.join(qt_source_path, "qttools", ".gitmodules"), 'w').write(
 				'[submodule "src/assistant/qlitehtml"]\n' +
 				'    path = src/assistant/qlitehtml\n' +
-				f'    url = {args.mirror}qlitehtml.git'
+				f'    url = {args.mirror}playground/qlitehtml.git'
+			)
+		else:
+			# Fix qttools to use absolute path since the relative path fails on anything that isn't the
+			# official repo, which is so slow and unreliable it fails many builds.
+			open(os.path.join(qt_source_path, "qttools", ".gitmodules"), 'w').write(
+				'[submodule "src/assistant/qlitehtml"]\n' +
+				'    path = src/assistant/qlitehtml\n' +
+				f'    url = https://code.qt.io/playground/qlitehtml.git'
 			)
 
 		# Check out all submodules
