@@ -100,7 +100,15 @@ if not args.skip_clone:
 		open(os.path.join(qt_source_path, "qttools", ".gitmodules"), 'w').write(
 			'[submodule "src/assistant/qlitehtml"]\n' +
 			'    path = src/assistant/qlitehtml\n' +
-			f'    url = {args.mirror}qlitehtml.git'
+			f'    url = {args.mirror}playground/qlitehtml.git'
+		)
+	else:
+		# Fix qttools to use absolute path since the relative path fails on anything that isn't the
+		# official repo, which is so slow and unreliable it fails many builds.
+		open(os.path.join(qt_source_path, "qttools", ".gitmodules"), 'w').write(
+			'[submodule "src/assistant/qlitehtml"]\n' +
+			'    path = src/assistant/qlitehtml\n' +
+			f'    url = https://code.qt.io/playground/qlitehtml.git'
 		)
 
 	# Check out all submodules
