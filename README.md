@@ -14,15 +14,16 @@ This build process uses [Poetry](https://python-poetry.org/) for dependency mana
 
 You will also require:
 
-- Compiler
-  - macOS: Xcode 13+ (tested, might work on older) 
-  - Windows: VS 2019 Professional
-  - Linux: GCC 9.4+ (tested, might work on older)
+- Compiler (tested, though older may work too)
+  - macOS: Xcode 16 or Command Line Tools for macOS 15 (Apple Clang 16.0.0) 
+  - Windows: VS 2022 Professional, v143 (14.34)
+  - Linux: GCC 11.4+
 - CMake
 - Ninja
 - libclang (path can be set with `LLVM_INSTALL_DIR`)
 - On Linux, you will need the following packages to build the UI components of Qt:
-  - `libfontconfig1-dev libfreetype6-dev libx11-dev libx11-xcb-dev libxext-dev libxfixes-dev libxi-dev libxrender-dev libxcb1-dev libxcb-glx0-dev libxcb-keysyms1-dev libxcb-image0-dev libxcb-shm0-dev libxcb-icccm4-dev libxcb-sync0-dev libxcb-xfixes0-dev libxcb-shape0-dev libxcb-randr0-dev libxcb-render-util0-dev libxcb-xinerama0-dev libxkbcommon-dev libxkbcommon-x11-dev libwayland-dev`
+  - See [https://doc.qt.io/qt-6/linux-requirements.html](https://doc.qt.io/qt-6/linux-requirements.html) 
+  - `sudo apt install libfontconfig1-dev libfreetype-dev libgtk-3-dev libx11-dev libx11-xcb-dev libxcb-cursor-dev libxcb-glx0-dev libxcb-icccm4-dev libxcb-image0-dev libxcb-keysyms1-dev libxcb-randr0-dev libxcb-render-util0-dev libxcb-shape0-dev libxcb-shm0-dev libxcb-sync-dev libxcb-util-dev libxcb-xfixes0-dev libxcb-xkb-dev libxcb1-dev libxext-dev libxfixes-dev libxi-dev libxkbcommon-dev libxkbcommon-x11-dev libxrender-dev libwayland-dev libxcb-xinerama0-dev`
 
 ## Using provided source bundle
 You can also use the source bundle referenced in the [documentation](https://docs.binary.ninja/about/open-source.html#building-qt) to build Qt. Download and extract the source bundle referenced in the documentation under the "Building Qt" section, then run the following command:
