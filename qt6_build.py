@@ -690,7 +690,7 @@ if sys.platform == 'darwin':
 				sys.exit(1)
 elif sys.platform == 'linux':
 	plugin_types = ["platforms", "imageformats", "wayland-decoration-client", "wayland-graphics-integration-client",
-		"wayland-shell-integration"]
+		"wayland-shell-integration", "platforminputcontexts"]
 	os.mkdir(bundle_path)
 	for plugin_type in plugin_types:
 		os.mkdir(os.path.join(bundle_path, plugin_type))
