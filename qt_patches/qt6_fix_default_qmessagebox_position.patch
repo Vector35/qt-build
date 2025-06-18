@@ -1,14 +1,30 @@
 diff --git a/qtbase/src/widgets/dialogs/qmessagebox.cpp b/qtbase/src/widgets/dialogs/qmessagebox.cpp
-index b4d76bc5ec..42853617a6 100644
+index f24cd905ccf..d4c1e8d0074 100644
 --- a/qtbase/src/widgets/dialogs/qmessagebox.cpp
 +++ b/qtbase/src/widgets/dialogs/qmessagebox.cpp
-@@ -798,6 +798,9 @@ QMessageBox::QMessageBox(QWidget *parent)
+@@ -34,6 +34,7 @@
+ #include <QtCore/qdebug.h>
+ #include <QtCore/qpointer.h>
+ #include <QtCore/qversionnumber.h>
++#include <QtCore/qoperatingsystemversion.h>
+ 
+ #ifdef Q_OS_WIN
+ #    include <QtCore/qt_windows.h>
+@@ -840,6 +841,17 @@ QMessageBox::QMessageBox(QWidget *parent)
  {
      Q_D(QMessageBox);
      d->init();
 +
 +    if (parent)
++    {
++#ifdef Q_OS_MACOS
++        if (QOperatingSystemVersion::current().majorVersion() < 16) {
++            setWindowModality(Qt::WindowModal);
++        }
++#else
 +        setWindowModality(Qt::WindowModal);
++#endif
++    }
  }
  
  /*!
