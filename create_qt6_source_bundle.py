@@ -14,6 +14,15 @@ from pathlib import Path
 from target_qt6_version import qt_version, qt_modules
 
 
+def apply_patch(path, qt_source_path):
+	# On some Windows machines, git apply breaks. On others, patch breaks. Just try both, because
+	# Windows environments are so hard to predict we can't rely on anything to be sane.
+	if subprocess.call(["git", "apply", os.path.abspath(path)], cwd=qt_source_path) != 0:
+		if subprocess.call(["patch", "-p1", "-i", os.path.abspath(path)], cwd=qt_source_path) != 0:
+			print("Failed to patch source")
+			sys.exit(1)
+
+
 parser = argparse.ArgumentParser(description = "Create bundle for Qt 6 source code")
 parser.add_argument("--skip-clone", help="skip cloning the Qt 6 source code", action="store_true")
 parser.add_argument("--skip-clean", help="skip removing the Qt 6 source code", action="store_true")
@@ -119,9 +128,7 @@ if not args.skip_clone:
 	qt_patch_contents = ""
 	for patch in qt_patches:
 		print(f"\nApplying patch {patch}...")
-		if subprocess.call(["git", "apply", os.path.abspath(patch)], cwd=qt_source_path) != 0:
-			print("Failed to patch source")
-			sys.exit(1)
+		apply_patch(patch, qt_source_path)
 		qt_patch_contents += open(patch).read()
 
 	print("\nCloning pyside-setup...")
@@ -140,9 +147,7 @@ if not args.skip_clone:
 	pyside_patch_contents = ""
 	for patch in pyside_patches:
 		print(f"\nApplying patch {patch}...")
-		if subprocess.call(["patch", "-p1", "-i", os.path.abspath(patch)], cwd=pyside_source_path) != 0:
-			print("Failed to patch source")
-			sys.exit(1)
+		apply_patch(patch, pyside_source_path)
 		pyside_patch_contents += open(patch).read()
 
 	open(os.path.join(artifact_path, f"qt{qt_version}.patch"), 'w').write(qt_patch_contents)
