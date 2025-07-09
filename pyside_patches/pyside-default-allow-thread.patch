@@ -1,0 +1,17 @@
+diff --git a/sources/shiboken6/ApiExtractor/abstractmetafunction.cpp b/sources/shiboken6/ApiExtractor/abstractmetafunction.cpp
+index 5198d69a4..f02d734d6 100644
+--- a/sources/shiboken6/ApiExtractor/abstractmetafunction.cpp
++++ b/sources/shiboken6/ApiExtractor/abstractmetafunction.cpp
+@@ -878,12 +878,8 @@ bool AbstractMetaFunction::allowThread() const
+         result = false;
+         break;
+     case TypeSystem::AllowThread::Allow:
+-        break;
+     case TypeSystem::AllowThread::Auto:
+-        result = autoDetectAllowThread();
+-        break;
+     case TypeSystem::AllowThread::Unspecified:
+-        result = false;
+         break;
+     }
+     if (!result && ReportHandler::isDebug(ReportHandler::MediumDebug))
