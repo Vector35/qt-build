@@ -1,13 +1,12 @@
 diff --git a/qtbase/src/plugins/platforms/cocoa/qcocoatheme.mm b/qtbase/src/plugins/platforms/cocoa/qcocoatheme.mm
-index 6d15e8e5d2c..6eb90f3c419 100644
+index b1605d2c783..586c88ce5f6 100644
 --- a/qtbase/src/plugins/platforms/cocoa/qcocoatheme.mm
 +++ b/qtbase/src/plugins/platforms/cocoa/qcocoatheme.mm
-@@ -213,16 +213,6 @@ inline QMacPaletteMap(QPlatformTheme::Palette p, NSColor *a, NSColor *i) :
+@@ -215,15 +215,6 @@ inline QMacPaletteMap(QPlatformTheme::Palette p, NSColor *a, NSColor *i) :
  QCocoaTheme::QCocoaTheme()
      : m_systemPalette(nullptr)
  {
 -    m_appearanceObserver = QMacKeyValueObserver(NSApp, @"effectiveAppearance", [this] {
--        NSAppearance.currentAppearance = NSApp.effectiveAppearance;
 -        handleSystemThemeChange();
 -    });
 -

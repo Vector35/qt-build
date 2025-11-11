@@ -1,0 +1,20 @@
+diff --git a/qtbase/src/corelib/global/qnumeric.h b/qtbase/src/corelib/global/qnumeric.h
+index bc2bbf9e53e..e82f90445a7 100644
+--- a/qtbase/src/corelib/global/qnumeric.h
++++ b/qtbase/src/corelib/global/qnumeric.h
+@@ -496,6 +496,7 @@ template <typename Result,
+           typename std::enable_if_t<std::is_floating_point_v<FP>, bool> = true>
+ constexpr inline Result qCheckedFPConversionToInteger(FP value)
+ {
++/*
+ #ifdef QT_SUPPORTS_IS_CONSTANT_EVALUATED
+     if (!q20::is_constant_evaluated())
+         Q_ASSERT(!std::isnan(value));
+@@ -517,6 +518,7 @@ constexpr inline Result qCheckedFPConversionToInteger(FP value)
+ 
+     // If both checks passed, the result of truncation is representable
+     // as `Result`:
++*/
+     return Result(value);
+ }
+ 

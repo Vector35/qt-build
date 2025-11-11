@@ -1,0 +1,22 @@
+diff --git a/sources/shiboken6/shibokenmodule/files.dir/shibokensupport/signature/layout.py b/sources/shiboken6/shibokenmodule/files.dir/shibokensupport/signature/layout.py
+index 98335a984..78d4b4448 100644
+--- a/sources/shiboken6/shibokenmodule/files.dir/shibokensupport/signature/layout.py
++++ b/sources/shiboken6/shibokenmodule/files.dir/shibokensupport/signature/layout.py
+@@ -395,10 +395,13 @@ def transform(signature):
+     for idx, param in enumerate(signature.parameters.values()):
+         ann = param.annotation
+         if typing.get_origin(ann) is typing.Union:
+-            args = typing.get_args(ann)
+-            ann = reduce(operator.or_, args)
+-            param = param.replace(annotation=ann)
+-            changed = True
++            try:
++                args = typing.get_args(ann)
++                ann = reduce(operator.or_, args)
++                param = param.replace(annotation=ann)
++                changed = True
++            except TypeError:
++                pass
+         params.append(param)
+     ann = signature.return_annotation
+     if typing.get_origin(ann) is typing.Union:

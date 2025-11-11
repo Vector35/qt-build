@@ -1,13 +1,25 @@
 diff --git a/qtbase/src/gui/painting/qdrawhelper.cpp b/qtbase/src/gui/painting/qdrawhelper.cpp
-index 35c44b8286..83bddae681 100644
+index 5cb5b9eb92f..3c6d429fd18 100644
 --- a/qtbase/src/gui/painting/qdrawhelper.cpp
 +++ b/qtbase/src/gui/painting/qdrawhelper.cpp
-@@ -26,7 +26,7 @@
- #include <qmath.h>
+@@ -3967,7 +3967,7 @@ static void spanfill_from_first(QRasterBuffer *rasterBuffer, QPixelLayout::BPP b
  
- #if QT_CONFIG(thread) && !defined(Q_OS_WASM)
--#define QT_USE_THREAD_PARALLEL_FILLS
-+//#define QT_USE_THREAD_PARALLEL_FILLS
- #endif
+ // -------------------- blend methods ---------------------
  
- #if defined(QT_USE_THREAD_PARALLEL_FILLS)
+-#if QT_CONFIG(qtgui_threadpool)
++/*#if QT_CONFIG(qtgui_threadpool)
+ #define QT_THREAD_PARALLEL_FILLS(function) \
+     const int segments = (count + 32) / 64; \
+     QThreadPool *threadPool = QGuiApplicationPrivate::qtGuiThreadPool(); \
+@@ -3986,9 +3986,9 @@ static void spanfill_from_first(QRasterBuffer *rasterBuffer, QPixelLayout::BPP b
+         semaphore.acquire(segments); \
+     } else \
+         function(0, count)
+-#else
++#else*/
+ #define QT_THREAD_PARALLEL_FILLS(function) function(0, count)
+-#endif
++//#endif
+ 
+ static void blend_color_generic(int count, const QT_FT_Span *spans, void *userData)
+ {
