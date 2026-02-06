@@ -8,6 +8,7 @@ import zipfile
 import argparse
 import platform
 import datetime
+import tempfile
 
 from math import ceil
 from pathlib import Path
@@ -104,6 +105,8 @@ parser.add_argument("--sign", dest='sign', help="sign all executables", action="
 parser.add_argument("--qt-source", help="use Qt source directory", action="store")
 parser.add_argument("--pyside-source", help="use PySide source directory", action="store")
 parser.add_argument("--build-dir", dest="build_dir", help="Custom build directory to bypass windows PATH_MAX limits", action="store")
+parser.add_argument("--symbols", help="extract debug symbols into a separate archive and strip debug info from binaries", action="store_true", default=True)
+parser.add_argument("--no-symbols", dest="symbols", help="disable debug symbol extraction", action="store_false")
 
 if not sys.platform.startswith("win"):
 	parser.add_argument("-j", "--jobs", dest='jobs', default=ceil(os.cpu_count()*1.1), help="Number of build threads (Defaults to 1.1*cpu_count)")
@@ -129,6 +132,18 @@ if args.debug:
 	print("Building debug")
 	build_opts.remove("-release")
 	build_opts += ["-debug"]
+
+extra_cmake_args = []
+if args.symbols:
+	if sys.platform == 'win32':
+		debug_flag = "/Zi"
+	elif sys.platform == 'darwin':
+		debug_flag = "-gline-tables-only"
+	else:
+		debug_flag = "-g1"
+	extra_cmake_args += [f"-DCMAKE_C_FLAGS={debug_flag}",
+		f"-DCMAKE_CXX_FLAGS={debug_flag}"]
+configure_extra = ["--"] + extra_cmake_args if extra_cmake_args else []
 
 mirror = []
 if args.mirror:
@@ -420,7 +435,7 @@ if sys.platform == 'darwin':
 		os.mkdir(os.path.join(build_path, "x86_64"))
 		os.environ["CMAKE_OSX_ARCHITECTURES"] = "x86_64"
 		if subprocess.call([os.path.join(qt_source_path, "configure")] + build_opts +
-			["-prefix", os.path.join(build_path, "target_x86_64")], cwd=os.path.join(build_path, "x86_64")) != 0:
+			["-prefix", os.path.join(build_path, "target_x86_64")] + configure_extra, cwd=os.path.join(build_path, "x86_64")) != 0:
 			print("Failed to configure")
 			sys.exit(1)
 
@@ -446,7 +461,7 @@ if sys.platform == 'darwin':
 		os.mkdir(os.path.join(build_path, "arm64"))
 		os.environ["CMAKE_OSX_ARCHITECTURES"] = "arm64"
 		if subprocess.call([os.path.join(qt_source_path, "configure")] + build_opts +
-			["-prefix", os.path.join(build_path, "target_arm64")], cwd=os.path.join(build_path, "arm64")) != 0:
+			["-prefix", os.path.join(build_path, "target_arm64")] + configure_extra, cwd=os.path.join(build_path, "arm64")) != 0:
 			print("Failed to configure")
 			sys.exit(1)
 
@@ -532,12 +547,12 @@ else:
 	if sys.platform == 'win32':
 		build_opts += ["-directwrite"]  # use DirectWrite for font rendering on Windows
 		if subprocess.call([os.path.join(qt_source_path, "configure.bat")] + build_opts +
-			["-prefix", install_path], cwd=build_path) != 0:
+			["-prefix", install_path] + configure_extra, cwd=build_path) != 0:
 			print("Failed to configure")
 			sys.exit(1)
 	else:
 		if subprocess.call([os.path.join(qt_source_path, "configure")] + build_opts +
-			["-prefix", install_path], cwd=build_path) != 0:
+			["-prefix", install_path] + configure_extra, cwd=build_path) != 0:
 			print("Failed to configure")
 			sys.exit(1)
 
@@ -585,6 +600,16 @@ if args.pyside:
 	if sys.platform == 'darwin':
 		if platform.processor() == 'arm' and args.universal:
 			os.environ["CMAKE_OSX_ARCHITECTURES"] = "arm64;x86_64"
+	if args.symbols:
+		if sys.platform == 'win32':
+			os.environ["CFLAGS"] = os.environ.get("CFLAGS", "") + " /Zi"
+			os.environ["CXXFLAGS"] = os.environ.get("CXXFLAGS", "") + " /Zi"
+		elif sys.platform == 'darwin':
+			os.environ["CFLAGS"] = os.environ.get("CFLAGS", "") + " -gline-tables-only"
+			os.environ["CXXFLAGS"] = os.environ.get("CXXFLAGS", "") + " -gline-tables-only"
+		else:
+			os.environ["CFLAGS"] = os.environ.get("CFLAGS", "") + " -g1"
+			os.environ["CXXFLAGS"] = os.environ.get("CXXFLAGS", "") + " -g1"
 	if subprocess.call([python3_cmd, "-m", "pip", "install", "-r", "requirements.txt"], cwd=pyside_build_path) != 0:
 		print("Python 3 bindings failed to install package dependencies")
 		sys.exit(1)
@@ -644,6 +669,114 @@ if args.pyside:
 
 	# Add PySide installer to place it into Python path
 	shutil.copy(os.path.join(base_dir, "install_pyside_pth.py"), os.path.join(install_path, "install_pyside_pth.py"))
+
+
+if args.symbols:
+	if sys.platform == 'darwin':
+		print("\nExtracting debug symbols...")
+		dsym_files = []
+		strip_files = []
+		for root, dirs, files in os.walk(install_path):
+			for file in files:
+				file_path = os.path.join(root, file)
+				if os.path.islink(file_path):
+					continue
+				if not os.path.isfile(file_path):
+					continue
+				if file.endswith('.o'):
+					continue
+				header = open(file_path, 'rb').read(4)
+				if header in (b"\xcf\xfa\xed\xfe", b"\xca\xfe\xba\xbe"):
+					strip_files.append(file_path)
+					if not file.endswith('.a'):
+						dsym_files.append(file_path)
+
+		with zipfile.ZipFile(artifact_path / f'qt{qt_version}-symbols.zip', 'w', zipfile.ZIP_DEFLATED) as z:
+			for f in dsym_files:
+				print(f"Processing {f}...")
+				dsym_path = f + ".dSYM"
+				if subprocess.call(["dsymutil", "-o", dsym_path, f]) != 0:
+					print(f"Failed to generate dSYM from {f}")
+					sys.exit(1)
+				for i in glob.glob(dsym_path + "/**/*", recursive=True):
+					if os.path.isfile(i):
+						z.write(i, os.path.relpath(i, install_path))
+				shutil.rmtree(dsym_path)
+
+		print("\nStripping debug info...")
+		for f in strip_files:
+			if subprocess.call(["strip", "-S", f]) != 0:
+				print(f"Failed to strip debug info from {f}")
+				sys.exit(1)
+			print(f"Stripped debug info from {f}")
+
+	elif sys.platform == 'linux':
+		print("\nExtracting debug symbols...")
+		symbol_files = []
+		strip_files = []
+		for root, dirs, files in os.walk(install_path):
+			for file in files:
+				file_path = os.path.join(root, file)
+				if os.path.islink(file_path):
+					continue
+				if not os.path.isfile(file_path):
+					continue
+				if file.endswith('.o'):
+					continue
+				header = open(file_path, 'rb').read(7)
+				if header[:4] == b"\x7fELF":
+					strip_files.append(file_path)
+					symbol_files.append(file_path)
+				elif header == b"!<arch>" and file.endswith('.a'):
+					strip_files.append(file_path)
+
+		with zipfile.ZipFile(artifact_path / f'qt{qt_version}-symbols.zip', 'w', zipfile.ZIP_DEFLATED) as z:
+			for f in symbol_files:
+				debug_file = f + ".debug"
+				if subprocess.call(["objcopy", "--only-keep-debug",
+						"--compress-debug-sections=zlib", f, debug_file]) != 0:
+					print(f"Failed to extract debug symbols from {f}")
+					sys.exit(1)
+
+				# Re-inject .eh_frame data from the original binary
+				with tempfile.TemporaryDirectory() as tmp:
+					remove_args = []
+					add_args = []
+					for section in [".eh_frame", ".eh_frame_hdr"]:
+						dump = os.path.join(tmp, section.lstrip("."))
+						subprocess.run(["objcopy", "--dump-section",
+							f"{section}={dump}", f],
+							capture_output=True)
+						if not os.path.exists(dump):
+							continue
+						remove_args += ["--remove-section", section]
+						add_args += ["--add-section", f"{section}={dump}"]
+					if remove_args:
+						subprocess.run(["objcopy"] + remove_args + [debug_file], check=True)
+						subprocess.run(["objcopy"] + add_args + [debug_file], check=True)
+
+				z.write(debug_file, os.path.relpath(debug_file, install_path))
+				os.remove(debug_file)
+
+		print("\nStripping debug info...")
+		for f in strip_files:
+			if subprocess.call(["strip", "--strip-debug", f]) != 0:
+				print(f"Failed to strip debug info from {f}")
+				sys.exit(1)
+			print(f"Stripped debug info from {f}")
+
+	elif sys.platform == 'win32':
+		print("\nCollecting debug symbols...")
+		with zipfile.ZipFile(artifact_path / f'qt{qt_version}-symbols.zip', 'w', zipfile.ZIP_DEFLATED) as z:
+			# PDBs from the build directory
+			for pdb in glob.glob(str(build_path) + '/**/*.pdb', recursive=True):
+				z.write(pdb, os.path.relpath(pdb, build_path))
+				print(f"Added {pdb}")
+			# PDBs from the install directory (remove after archiving)
+			for pdb in glob.glob(str(install_path) + '/**/*.pdb', recursive=True):
+				z.write(pdb, os.path.relpath(pdb, install_path))
+				os.remove(pdb)
+				print(f"Added {pdb}")
 
 
 # Create modified libraries that contain the correct rpath for bundling. These will be signed separately
