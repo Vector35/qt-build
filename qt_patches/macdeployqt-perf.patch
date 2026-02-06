@@ -1,0 +1,13 @@
+diff --git a/qtbase/src/tools/macdeployqt/shared/shared.cpp b/qtbase/src/tools/macdeployqt/shared/shared.cpp
+index fedc8bfd092..7df9e7e4a19 100644
+--- a/qtbase/src/tools/macdeployqt/shared/shared.cpp
++++ b/qtbase/src/tools/macdeployqt/shared/shared.cpp
+@@ -926,6 +926,8 @@ void deployRPaths(const QString &bundlePath, const QList<QString> &rpaths, const
+ 
+ void changeInstallName(const QString &oldName, const QString &newName, const QString &binaryPath)
+ {
++    if (oldName == newName)
++        return;
+     LogDebug() << "Using install_name_tool:";
+     LogDebug() << " in" << binaryPath;
+     LogDebug() << " change reference" << oldName;
