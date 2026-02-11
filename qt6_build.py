@@ -649,7 +649,8 @@ if args.pyside:
 # Create modified libraries that contain the correct rpath for bundling. These will be signed separately
 # so that each bundle does not need to re-sign the libraries.
 if sys.platform == 'darwin':
-	plugin_types = ["platforms", "imageformats"]
+	plugins_path = os.path.join(install_path, "plugins")
+	plugin_types = [d for d in os.listdir(plugins_path) if os.path.isdir(os.path.join(plugins_path, d))]
 	os.mkdir(bundle_path)
 	for plugin_type in plugin_types:
 		os.mkdir(os.path.join(bundle_path, plugin_type))
@@ -657,15 +658,19 @@ if sys.platform == 'darwin':
 		os.mkdir(os.path.join(bundle_path, "PySide6"))
 
 	for plugin_type in plugin_types:
-		for f in glob.glob(os.path.join(install_path, "plugins", plugin_type, "*.dylib")):
+		for f in glob.glob(os.path.join(plugins_path, plugin_type, "*.dylib")):
 			target = os.path.join(bundle_path, plugin_type, os.path.basename(f))
 			shutil.copy(f, target)
 			if subprocess.call(["install_name_tool", "-delete_rpath", "@loader_path/../../lib", target]) != 0:
 				print(f"Failed to remove rpath from {target}")
 				sys.exit(1)
-			if subprocess.call(["install_name_tool", "-add_rpath", "@loader_path/../../../Frameworks", target]) != 0:
+			if subprocess.call(["install_name_tool", "-add_rpath", "@loader_path/../../Frameworks", target]) != 0:
 				print(f"Failed to add framework rpath to {target}")
 				sys.exit(1)
+
+	# Generate qt.conf to direct macdeployqt to use the bundle plugins
+	with open(os.path.join(install_path, "bin", "qt.conf"), "w") as f:
+		f.write("[Paths]\nPrefix = ..\nPlugins = bundle\n")
 
 	if args.pyside:
 		for f in glob.glob(os.path.join(pyside_install_path, "site-packages", "PySide6", "*.so")):
