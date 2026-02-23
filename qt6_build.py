@@ -137,6 +137,9 @@ extra_cmake_args = []
 if args.symbols:
 	if sys.platform == 'win32':
 		debug_flag = "/Zi"
+		extra_cmake_args += ["-DCMAKE_EXE_LINKER_FLAGS=/DEBUG",
+			"-DCMAKE_MODULE_LINKER_FLAGS=/DEBUG",
+			"-DCMAKE_SHARED_LINKER_FLAGS=/DEBUG"]
 	elif sys.platform == 'darwin':
 		debug_flag = "-gline-tables-only"
 	else:
@@ -770,7 +773,12 @@ if args.symbols:
 		with zipfile.ZipFile(artifact_path / f'qt{qt_version}-symbols.zip', 'w', zipfile.ZIP_DEFLATED) as z:
 			# PDBs from the build directory
 			for pdb in glob.glob(str(build_path) + '/**/*.pdb', recursive=True):
-				z.write(pdb, os.path.relpath(pdb, build_path))
+				rel = os.path.relpath(pdb, build_path)
+				parts = rel.replace('\\', '/').split('/')
+				# Ignore intermediate PDBs that the compiler generates. We only care about linker PDBs.
+				if 'CMakeFiles' in parts or 'config.tests' in parts or parts[:2] == ['qtbase', 'lib']:
+					continue
+				z.write(pdb, rel)
 				print(f"Added {pdb}")
 			# PDBs from the install directory (remove after archiving)
 			for pdb in glob.glob(str(install_path) + '/**/*.pdb', recursive=True):
