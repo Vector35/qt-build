@@ -42,6 +42,25 @@ def keychain_unlocker():
 	return True
 
 
+def mac_should_strip(file_path):
+	"""Check if a file is a Mach-O binary that we should strip."""
+	if os.path.islink(file_path) or not os.path.isfile(file_path):
+		return False
+	if file_path.endswith('.o'):
+		return False
+	header = open(file_path, 'rb').read(4)
+	if header not in (b"\xcf\xfa\xed\xfe", b"\xca\xfe\xba\xbe"):
+		return False
+	# Skip binaries that are already signed with a non-ad-hoc signature.
+	# They were built by another project and it is that project's
+	# responsibility to provide debug symbols for them.
+	sig = subprocess.run(["codesign", "-d", "--verbose=2", file_path],
+		capture_output=True, text=True)
+	if sig.returncode == 0 and "Authority=" in sig.stderr:
+		return False
+	return True
+
+
 def mac_sign(path):
 	if not keychain_unlocker():
 		return False
@@ -682,14 +701,7 @@ if args.symbols:
 		for root, dirs, files in os.walk(install_path):
 			for file in files:
 				file_path = os.path.join(root, file)
-				if os.path.islink(file_path):
-					continue
-				if not os.path.isfile(file_path):
-					continue
-				if file.endswith('.o'):
-					continue
-				header = open(file_path, 'rb').read(4)
-				if header in (b"\xcf\xfa\xed\xfe", b"\xca\xfe\xba\xbe"):
+				if mac_should_strip(file_path):
 					strip_files.append(file_path)
 					if not file.endswith('.a'):
 						dsym_files.append(file_path)
