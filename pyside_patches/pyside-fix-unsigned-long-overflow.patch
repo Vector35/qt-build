@@ -1,0 +1,28 @@
+diff --git a/sources/shiboken6/libshiboken/sbkconverter_p.h b/sources/shiboken6/libshiboken/sbkconverter_p.h
+index 974b0e4..7891662 100644
+--- a/sources/shiboken6/libshiboken/sbkconverter_p.h
++++ b/sources/shiboken6/libshiboken/sbkconverter_p.h
+@@ -265,6 +265,23 @@ struct UnsignedLongPrimitive : IntPrimitive<LONG>
+     {
+         return PyLong_FromUnsignedLong(*reinterpret_cast<const LONG *>(cppIn));
+     }
++    // Override the inherited (signed) otherToCpp from IntPrimitive, which uses
++    // PyLong_AsLongLong and fails for values in (INT64_MAX, UINT64_MAX].
++    static void otherToCpp(PyObject *pyIn, void *cppOut)
++    {
++        unsigned long result = PyLong_AsUnsignedLong(pyIn);
++        if (OverFlowChecker<LONG, unsigned long, false>::check(result, pyIn))
++            PyErr_SetObject(PyExc_OverflowError, nullptr);
++        *reinterpret_cast<LONG *>(cppOut) = static_cast<LONG>(result);
++    }
++    // isOtherConvertible must also be overridden: the inherited IntPrimitive version
++    // returns a pointer to IntPrimitive::otherToCpp (signed), not the override above.
++    static PythonToCppFunc isOtherConvertible(PyObject *pyIn)
++    {
++        if (PyNumber_Check(pyIn))
++            return otherToCpp;
++        return nullptr;
++    }
+ };
+ template <> struct Primitive<unsigned int> : UnsignedLongPrimitive<unsigned int> {};
+ template <> struct Primitive<unsigned long> : UnsignedLongPrimitive<unsigned long> {};
