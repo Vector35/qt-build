@@ -6,8 +6,7 @@ authors = ["Rusty Wagner <rusty@vector35.com>", "Alexander Taylor <alex@vector35
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "^3.9"
-pathlib = "^1.0.1"
+python = ">=3.9,<4.0"
 
 
 [build-system]
