@@ -1,0 +1,107 @@
+/*
+    This is the CI script for test builds of Qt for Binary Ninja.
+    Test builds come from test_* branches.
+*/
+
+def jobFormatted = "`<${JOB_URL}|${JOB_NAME}> <${BUILD_URL}|#${BUILD_NUMBER}>`"
+def slackResponse = slackSend(message: "Thread for ${jobFormatted}")
+
+pipeline {
+    agent {
+        label "master"
+    }
+    options {
+        // Allow self to copy artifacts
+        copyArtifactPermission("${JOB_BASE_NAME}")
+
+        // Limit to 1 build per branch at a time
+        disableConcurrentBuilds()
+        throttleJobProperty(
+            categories: ["Qt Build"],
+            throttleEnabled: true,
+            throttleOption: "category"
+        )
+
+        // Skip remaining stages if any tests fail
+        skipStagesAfterUnstable()
+
+        // Fail the build if it takes longer than this, since it's likely hung
+        timeout(time: 60, unit: "MINUTES")
+    }
+    environment {
+        YUBIKEY_PIN = credentials('yubikey-signing-pin')
+        PYTHONUNBUFFERED = "1"
+    }
+    stages {
+        stage("Build Artifacts") {
+            matrix {
+                axes {
+                    axis {
+                        name "os"
+                        values "linux", "linux-arm", "macosx", "win64"
+                    }
+                }
+                agent {
+                    node {
+                        label "${os}"
+                        customWorkspace "qtbuild"
+                    }
+                }
+                stages {
+                    stage("Build") {
+                        steps {
+                            script {
+                                if (isUnix()) {
+                                    sh "./build_${os} --universal --no-prompt --no-install --sign"
+                                } else {
+                                    bat ".\\build_${os}.bat --universal --no-prompt --no-install --sign"
+                                }
+                                archiveArtifacts "artifacts/**"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    post {
+        always {
+            script {
+                def buildVersion = getBuildVersionFromLog()
+                if (buildVersion) {
+                    addShortText text: buildVersion, border: 0
+                    summary = createSummary icon: "icon-document icon-md"
+                    summary.appendText("Qt Build: " + buildVersion)
+                }
+            }
+            slackSend(channel: slackResponse.threadId, message: "Build finished")
+            script {
+                def status = currentBuild.currentResult ?: "UNKNOWN"
+                def statusMap = [
+                    SUCCESS: [label: "Build succeeded", emoji: ":white_check_mark:", color: "good"],
+                    UNSTABLE: [label: "Build unstable", emoji: ":warning:", color: "warning"],
+                    ABORTED: [label: "Build aborted", emoji: ":heavy_multiplication_x:", color: "warning"],
+                    FAILURE: [label: "Build failed", emoji: ":x:", color: "danger"]
+                ]
+                def info = statusMap.get(status, [label: "Build ${status.toLowerCase()}", emoji: ":grey_question:", color: "warning"])
+                slackSend(channel: slackResponse.threadId, message: info.label, color: info.color)
+                slackSend(channel: slackResponse.channelId, timestamp: slackResponse.ts, message: "${info.emoji} ${info.label}: ${jobFormatted}", color: info.color)
+            }
+        }
+        regression {
+            script {
+                // Tag user and post to channel on regression
+                def committerEmail = sh(
+                    script: "git --no-pager show -s --format='%ae'",
+                    returnStdout: true
+                ).trim()
+                def userId = slackUserIdFromEmail(committerEmail)
+                def userPart = "User That Didn't Commit With The Correct Email Address"
+                if (userId != null) {
+                    userPart = "<@$userId>"
+                }
+                slackSend(channel: slackResponse.threadId, message: "Way to go, ${userPart}. You broke the build! :notlikethis:", replyBroadcast: true)
+            }
+        }
+    }
+}
