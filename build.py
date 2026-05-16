@@ -13,6 +13,7 @@ import tempfile
 from math import ceil
 from pathlib import Path
 
+from build_metadata import emit_build_metadata
 from target_qt6_version import qt_version, llvm_version, msvc_build, msvc_dir_name, vs_version, min_macos, qt_modules, pyside_modules
 
 
@@ -280,6 +281,59 @@ print(f"Codesigning:                 {'YES' if args.sign else 'NO'}")
 print(f"PySide:                      {'YES' if args.pyside else 'NO'}")
 print("")
 
+emit_build_metadata(
+	repo_name="qt-build",
+	artifact_path=artifact_path,
+	paths={
+		"repo_root": base_dir,
+		"source_path": source_path,
+		"qt_source_path": qt_source_path,
+		"pyside_source_path": pyside_source_path,
+		"build_path": build_path,
+		"pyside_build_path": pyside_build_path,
+		"install_path": install_path,
+		"pyside_install_path": pyside_install_path,
+		"artifact_path": artifact_path,
+		"user_install_path": user_qt_parent_path if args.install else None,
+		"llvm_path": llvm_dir,
+	},
+	versions={
+		"qt_version": qt_version,
+		"llvm_version": llvm_version,
+		"msvc_build": msvc_build,
+		"msvc_dir_name": msvc_dir_name,
+		"vs_version": vs_version,
+		"min_macos": min_macos,
+		"qt_modules": qt_modules,
+		"pyside_modules": pyside_modules,
+	},
+	options={
+		"no_clone": args.no_clone,
+		"clean": args.clean,
+		"install": args.install,
+		"prompt": args.prompt,
+		"pyside": args.pyside,
+		"patch": args.patch,
+		"asan": args.asan,
+		"tsan": args.tsan,
+		"debug": args.debug,
+		"universal": args.universal,
+		"mirror": args.mirror,
+		"sign": args.sign,
+		"qt_source": args.qt_source,
+		"pyside_source": args.pyside_source,
+		"build_dir": args.build_dir,
+		"symbols": args.symbols,
+		"jobs": getattr(args, "jobs", None),
+	},
+	env_var_names=(
+		"JOB_NAME", "BUILD_NUMBER", "BUILD_URL", "BRANCH_NAME", "CHANGE_ID", "WORKSPACE",
+		"PYTHONUNBUFFERED", "BUILD_DIR", "ARTIFACTS_DIR", "SOURCE_MIRROR", "JOBS", "SIGN",
+		"NO_INSTALL", "NO_PROMPT", "CLEAN", "BUILD_VARIANT", "QT_INSTALL_DIR", "LLVM_INSTALL_DIR",
+		"YUBIKEY_PIN",
+	),
+)
+
 
 qt_patches = []
 for patch in sorted(qt_patches_path.iterdir()):
@@ -326,6 +380,8 @@ if not artifact_path.exists():
 if args.clean:
 	# Clean existing files
 	for f in artifact_path.glob('*'):
+		if f.name == 'build-metadata.json':
+			continue
 		f.unlink()
 
 	if build_path.exists():

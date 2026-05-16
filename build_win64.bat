@@ -12,5 +12,5 @@ mise install
 if errorlevel 1 exit /b %errorlevel%
 mise exec -- poetry install --sync --no-root
 if errorlevel 1 exit /b %errorlevel%
-mise exec -- poetry run python -u .\qt6_build.py %*
+mise exec -- poetry run python -u .\build.py %*
 exit /b %errorlevel%
