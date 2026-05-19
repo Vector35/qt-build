@@ -8,6 +8,25 @@ Run the `./build_<platform>` that matches your host's platform. Verify that the 
 
 The build will be installed in the directory specified by `$QT_INSTALL_DIR` (or `~/Qt` if unset) unless you pass `--no-install` to the script.
 
+## Environment Variables
+
+CLI arguments override environment defaults. Boolean values accept `1`, `true`, `yes`, `on`, `y`, `0`, `false`, `no`, `off`, or `n` case-insensitively. Secret-like values are redacted in `artifacts/build-metadata.json`.
+
+| Variable | Purpose |
+| --- | --- |
+| `BUILD_DIR` | Default for `--build-dir`; defaults to `build` under the repo. |
+| `ARTIFACTS_DIR` | Artifact output directory; defaults to `artifacts` under the repo. |
+| `SOURCE_MIRROR` | Default for `--mirror`. |
+| `JOBS` | Default for `-j/--jobs` on POSIX. |
+| `SIGN` | Default for `--sign`; use `--no-sign` to override. |
+| `NO_INSTALL` | Default equivalent of `--no-install`; use `--install` to override. |
+| `NO_PROMPT` | Default equivalent of `--no-prompt`; use `--prompt` to override. |
+| `CLEAN` | Sets whether to clean before building; use `--clean` or `--no-clean` to override. |
+| `BUILD_VARIANT` | Default build variant: `release`, `debug`, `asan`, or `tsan`. CLI variant flags override it. |
+| `QT_INSTALL_DIR` | Local install destination parent for Qt when installation is enabled. |
+| `LLVM_INSTALL_DIR` | Location of the libclang dependency used to build PySide. |
+| `YUBIKEY_PIN` | Windows signing PIN used when signing is enabled. |
+
 ## Requirements
 
 This build process uses [Poetry](https://python-poetry.org/) for dependency management. You'll need to `pip3 install poetry` (or equivalent for your system) to be able to build.

@@ -109,11 +109,63 @@ def apply_patch(path, qt_source_path):
 			sys.exit(1)
 
 
+def parse_env_bool(name):
+	value = os.environ.get(name)
+	if value is None:
+		return None
+	value = value.strip().lower()
+	if value in ("1", "true", "yes", "on", "y"):
+		return True
+	if value in ("0", "false", "no", "off", "n"):
+		return False
+	raise ValueError(f"Invalid boolean value for {name}: {os.environ[name]!r}")
+
+
+def apply_env_defaults(args, parser):
+	try:
+		clean = parse_env_bool("CLEAN")
+		sign = parse_env_bool("SIGN")
+		no_install = parse_env_bool("NO_INSTALL")
+		no_prompt = parse_env_bool("NO_PROMPT")
+	except ValueError as e:
+		parser.error(str(e))
+
+	if args.clean is None:
+		args.clean = True if clean is None else clean
+	if args.sign is None:
+		args.sign = False if sign is None else sign
+	if args.install is None:
+		args.install = True if no_install is None else not no_install
+	if args.prompt is None:
+		args.prompt = True if no_prompt is None else not no_prompt
+	if args.mirror is None:
+		args.mirror = os.environ.get("SOURCE_MIRROR")
+	if args.build_dir is None:
+		args.build_dir = os.environ.get("BUILD_DIR")
+	if hasattr(args, "jobs") and args.jobs is None:
+		args.jobs = os.environ.get("JOBS", ceil(os.cpu_count()*1.1))
+
+	build_variant = os.environ.get("BUILD_VARIANT")
+	if build_variant and not (args.debug or args.asan or args.tsan):
+		build_variant = build_variant.strip().lower()
+		if build_variant == "debug":
+			args.debug = True
+		elif build_variant == "asan":
+			args.asan = True
+		elif build_variant == "tsan":
+			args.tsan = True
+		elif build_variant != "release":
+			parser.error("Invalid BUILD_VARIANT: expected release, debug, asan, or tsan")
+
+
 parser = argparse.ArgumentParser(description = "Build and install Qt 6", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument("--no-clone", help="skip cloning the Qt 6 source code", action="store_true")
-parser.add_argument("--no-clean", dest='clean', action='store_false', default=True, help="skip removing the Qt 6 source code")
-parser.add_argument("--no-prompt", dest='prompt', action='store_false', default=True, help="Don't wait for user prompt")
-parser.add_argument("--no-install", dest='install', action='store_false', default=True, help="Don't install build products to your home folder")
+parser.add_argument("--no-clean", dest='clean', action='store_false', default=None, help="skip removing the Qt 6 source code")
+parser.add_argument("--clean", dest='clean', action='store_true', help="remove the Qt 6 source code before building")
+parser.add_argument("--no-prompt", dest='prompt', action='store_false', default=None, help="Don't wait for user prompt")
+parser.add_argument("--prompt", dest='prompt', action='store_true', help="Wait for user prompt")
+parser.add_argument("--no-install", dest='install', action='store_false', default=None, help="Don't install build products to your home folder")
+parser.add_argument("--install", dest='install', action='store_true', help="Install build products to your home folder")
 parser.add_argument("--no-pyside", dest='pyside', action='store_false', default=True, help="Don't build PySide")
 parser.add_argument("--patch", help="patch the source before building")
 parser.add_argument("--asan", help="build with ASAN", action="store_true")
@@ -121,7 +173,8 @@ parser.add_argument("--tsan", help="build with TSAN", action="store_true")
 parser.add_argument("--debug", help="build a debug configuration", action="store_true")
 parser.add_argument("--universal", help="build for both x86_64 and arm64 (arm64 Mac host only)", action="store_true")
 parser.add_argument("--mirror", help="use source mirror", action="store")
-parser.add_argument("--sign", dest='sign', help="sign all executables", action="store_true")
+parser.add_argument("--sign", dest='sign', help="sign all executables", action="store_true", default=None)
+parser.add_argument("--no-sign", dest='sign', help="don't sign executables", action="store_false")
 parser.add_argument("--qt-source", help="use Qt source directory", action="store")
 parser.add_argument("--pyside-source", help="use PySide source directory", action="store")
 parser.add_argument("--build-dir", dest="build_dir", help="Custom build directory to bypass windows PATH_MAX limits", action="store")
@@ -129,9 +182,10 @@ parser.add_argument("--symbols", help="extract debug symbols into a separate arc
 parser.add_argument("--no-symbols", dest="symbols", help="disable debug symbol extraction", action="store_false")
 
 if not sys.platform.startswith("win"):
-	parser.add_argument("-j", "--jobs", dest='jobs', default=ceil(os.cpu_count()*1.1), help="Number of build threads (Defaults to 1.1*cpu_count)")
+	parser.add_argument("-j", "--jobs", dest='jobs', default=None, help="Number of build threads (Defaults to 1.1*cpu_count)")
 
 args = parser.parse_args()
+apply_env_defaults(args, parser)
 
 if args.patch:
 	args.patch = os.path.abspath(args.patch)
@@ -226,14 +280,14 @@ os.environ["LLVM_INSTALL_DIR"] = llvm_dir
 
 base_dir = Path(__file__).resolve().parent
 if args.build_dir is not None:
-	qt_dir = Path(args.build_dir).resolve()
+	qt_dir = Path(args.build_dir).expanduser().resolve()
 else:
 	qt_dir = base_dir / "build"
 
 source_path = qt_dir / "src"
 qt_source_path = source_path / "qt"
 build_path = source_path / "build"
-artifact_path = base_dir / "artifacts"
+artifact_path = Path(os.environ["ARTIFACTS_DIR"]).expanduser().resolve() if "ARTIFACTS_DIR" in os.environ else base_dir / "artifacts"
 if args.asan:
 	qt_version_dir = qt_version + "-asan"
 elif args.tsan:
