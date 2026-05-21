@@ -17,6 +17,10 @@ from build_metadata import emit_build_metadata
 from target_qt6_version import qt_version, llvm_version, msvc_build, msvc_dir_name, vs_version, min_macos, qt_modules, pyside_modules
 
 
+def step(name):
+	print(f"\n=== Step: {name} ===")
+
+
 build_opts = ["-no-static", "-release", "-opensource", "-confirm-license", "-nomake", "examples",
 	"-nomake", "tests", "-no-feature-tuiotouch", "-qt-libpng", "-qt-libjpeg", "-qt-libb2", "-no-glib",
 	"-qt-tiff", "-qt-webp", "-qt-pcre", "-no-feature-zstd", "-no-feature-brotli", "-no-feature-graphicseffect",
@@ -158,6 +162,7 @@ def apply_env_defaults(args, parser):
 			parser.error("Invalid BUILD_VARIANT: expected release, debug, asan, or tsan")
 
 
+step("validate/configure inputs")
 parser = argparse.ArgumentParser(description = "Build and install Qt 6", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument("--no-clone", help="skip cloning the Qt 6 source code", action="store_true")
 parser.add_argument("--no-clean", dest='clean', action='store_false', default=None, help="skip removing the Qt 6 source code")
@@ -314,6 +319,7 @@ bundle_path = install_path / "bundle"
 
 
 
+step("print reproducibility metadata")
 print(f"Target Qt version is         {qt_version}")
 print(f"Build path will be           {build_path}")
 print(f"Build products path will be  {install_path}")
@@ -422,11 +428,14 @@ if sys.platform.startswith("win") and len(str(qt_dir)) > 40:
 	if not args.prompt:
 		sys.exit(1)
 
-if args.prompt and input("\nIs this correct (y/n)? ") != "y":
-	print("Aborted")
-	sys.exit(1)
+if args.prompt:
+	step("confirm prompt")
+	if input("\nIs this correct (y/n)? ") != "y":
+		print("Aborted")
+		sys.exit(1)
 
 
+step("prepare directories")
 if not artifact_path.exists():
 	artifact_path.mkdir(parents=True)
 
@@ -452,6 +461,7 @@ if args.install and user_qt_parent_path.exists():
 
 
 if not args.no_clone:
+	step("fetch/copy source")
 	if os.path.exists(source_path):
 		remove_dir(source_path)
 
@@ -509,6 +519,7 @@ if not args.no_clone:
 			print("Failed to check out submodules")
 			sys.exit(1)
 
+		step("apply patches")
 		for patch in qt_patches:
 			print(f"\nApplying patch {patch}...")
 			apply_patch(patch, qt_source_path)
@@ -551,10 +562,12 @@ if not args.no_clone:
 					print("Failed to clone PySide git repository")
 					sys.exit(1)
 
+			step("apply patches")
 			for patch in pyside_patches:
 				print(f"\nApplying patch {patch}...")
 				apply_patch(patch, pyside_source_path)
 
+step("prepare directories")
 if os.path.exists(build_path):
 	remove_dir(build_path)
 
@@ -563,6 +576,7 @@ if sys.platform == 'darwin':
 	os.mkdir(build_path)
 
 	if platform.processor() != 'arm' or args.universal:
+		step("configure dependencies/toolchain")
 		print("\nConfiguring Qt for x86_64...")
 		os.mkdir(os.path.join(build_path, "x86_64"))
 		os.environ["CMAKE_OSX_ARCHITECTURES"] = "x86_64"
@@ -571,6 +585,7 @@ if sys.platform == 'darwin':
 			print("Failed to configure")
 			sys.exit(1)
 
+		step("build")
 		print("\nBuilding Qt for x86_64...")
 		# Build is unreliable but continues without issue, so try up to 5 times
 		retry_count = 0
@@ -583,12 +598,14 @@ if sys.platform == 'darwin':
 			else:
 				break
 
+		step("install/stage")
 		print("\nInstalling Qt for x86_64...")
 		if subprocess.call([make_cmd, "install"], cwd=os.path.join(build_path, "x86_64")) != 0:
 			print("Qt failed to install")
 			sys.exit(1)
 
 	if platform.processor() == 'arm':
+		step("configure dependencies/toolchain")
 		print("\nConfiguring Qt for ARM64...")
 		os.mkdir(os.path.join(build_path, "arm64"))
 		os.environ["CMAKE_OSX_ARCHITECTURES"] = "arm64"
@@ -597,6 +614,7 @@ if sys.platform == 'darwin':
 			print("Failed to configure")
 			sys.exit(1)
 
+		step("build")
 		print("\nBuilding Qt for ARM64...")
 		# Build is unreliable but continues without issue, so try up to 5 times
 		retry_count = 0
@@ -609,6 +627,7 @@ if sys.platform == 'darwin':
 			else:
 				break
 
+		step("install/stage")
 		print("\nInstalling Qt for ARM64...")
 		if subprocess.call([make_cmd, "install"], cwd=os.path.join(build_path, "arm64")) != 0:
 			print("Qt failed to install")
@@ -651,6 +670,7 @@ else:
 	os.mkdir(build_path)
 
 	if sys.platform == 'linux':
+		step("configure dependencies/toolchain")
 		print("\n Configuring libicu...")
 
 		if subprocess.call([os.path.join(qt_source_path, "icu", "icu4c", "source", "configure"),
@@ -661,11 +681,13 @@ else:
 			print("Failed to configure")
 			sys.exit(1)
 
+		step("build")
 		print("\nBuilding libicu...")
 		if subprocess.call(["make"] + parallel, cwd=os.path.join(qt_source_path, "icu", "icu4c", "source")) != 0:
 			print("libicu failed to build")
 			sys.exit(1)
 
+		step("install/stage")
 		print("\nInstalling Qt...")
 		if subprocess.call(["make", "install"], cwd=os.path.join(qt_source_path, "icu", "icu4c", "source")) != 0:
 			print("Qt failed to install")
@@ -675,6 +697,7 @@ else:
 
 		build_opts += ['-bundled-xcb-xinput']
 
+	step("configure dependencies/toolchain")
 	print("\nConfiguring Qt...")
 	if sys.platform == 'win32':
 		build_opts += ["-directwrite"]  # use DirectWrite for font rendering on Windows
@@ -688,6 +711,7 @@ else:
 			print("Failed to configure")
 			sys.exit(1)
 
+	step("build")
 	print("\nBuilding Qt...")
 	# Build is unreliable but continues without issue, so try up to 5 times
 	retry_count = 0
@@ -700,6 +724,7 @@ else:
 		else:
 			break
 
+	step("install/stage")
 	print("\nInstalling Qt...")
 	if subprocess.call([make_cmd, "install"], cwd=build_path) != 0:
 		print("Qt failed to install")
@@ -721,6 +746,7 @@ else:
 
 
 if args.pyside:
+	step("build")
 	print("\nBuilding Python 3 bindings...")
 	if sys.platform == 'win32':
 		os.environ["PATH"] = f'{str(install_path / "bin")};{os.environ["PATH"]}'
@@ -986,6 +1012,7 @@ elif sys.platform == 'linux':
 
 
 if args.sign:
+	step("sign staged outputs")
 	if sys.platform == 'darwin':
 		# Sign all Mach-O files in the installation
 		for root, dirs, files in os.walk(install_path):
@@ -1023,6 +1050,7 @@ if args.sign:
 						sys.exit(1)
 
 
+step("package artifacts")
 print("\nCreating archive...")
 with zipfile.ZipFile(artifact_path / f'qt{qt_version}.zip', 'w', zipfile.ZIP_DEFLATED) as z:
 	for root, dirs, files in os.walk(install_path):
@@ -1057,9 +1085,11 @@ with zipfile.ZipFile(artifact_path / f'qt{qt_version}.zip', 'w', zipfile.ZIP_DEF
 
 
 if args.install:
+	step("install locally/deploy if requested")
 	import deploy
 
 
 if args.clean:
+	step("cleanup")
 	print("Cleaning up...")
 	remove_dir(source_path)
