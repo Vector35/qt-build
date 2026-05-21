@@ -40,6 +40,16 @@ def remove_dir(path):
 		shutil.rmtree(path)
 
 
+def normalized_platform():
+	if sys.platform == 'darwin':
+		return 'macosx'
+	if sys.platform.startswith('linux'):
+		return 'linux-arm' if platform.machine().lower() in ('aarch64', 'arm64') else 'linux'
+	if sys.platform.startswith('win'):
+		return 'win64'
+	return sys.platform
+
+
 def keychain_unlocker():
 	keychain_unlocker = os.environ["HOME"] + "/unlock-keychain"
 	if os.path.exists(keychain_unlocker):
@@ -267,9 +277,11 @@ else:
 if sys.platform == 'win32':
 	os.environ["HOME"] = os.environ["HOMEDRIVE"] + os.environ["HOMEPATH"]
 
+platform_name = normalized_platform()
+
 # Copy libclang to the build directory
-if os.path.exists(f'./artifacts-extern/artifacts/libclang-{llvm_version}.zip'):
-	with zipfile.ZipFile(f'./artifacts-extern/artifacts/libclang-{llvm_version}.zip') as zf:
+if os.path.exists(f'./artifacts-extern/artifacts/libclang_{platform_name}_{llvm_version}.zip'):
+	with zipfile.ZipFile(f'./artifacts-extern/artifacts/libclang_{platform_name}_{llvm_version}.zip') as zf:
 		zf.extractall('build')
 		os.environ['LLVM_INSTALL_DIR'] = os.path.realpath('build/libclang')
 
@@ -299,6 +311,8 @@ elif args.tsan:
 	qt_version_dir = qt_version + "-tsan"
 else:
 	qt_version_dir = qt_version
+qt_artifact_name = f'qt_{platform_name}_{qt_version}.zip'
+qt_symbols_artifact_name = f'qt_symbols_{platform_name}_{qt_version}.zip'
 if sys.platform == 'win32':
 	compiler = msvc_dir_name
 elif sys.platform == 'darwin':
@@ -306,6 +320,7 @@ elif sys.platform == 'darwin':
 else:
 	compiler = "gcc_64"
 install_path = qt_dir / "install" / "Qt" / qt_version_dir / compiler
+qt_archive_root = os.path.join('Qt', qt_version_dir)
 qt_patches_path = base_dir / 'qt_patches'
 pyside_patches_path = base_dir / 'pyside_patches'
 if sys.platform == 'win32':
@@ -368,6 +383,14 @@ emit_build_metadata(
 		"pyside_modules": pyside_modules,
 	},
 	options={
+		"artifact_filenames": {
+			"qt": qt_artifact_name,
+			"qt_symbols": qt_symbols_artifact_name,
+		},
+		"archive_internal_roots": {
+			"qt": qt_archive_root,
+			"qt_symbols": ".",
+		},
 		"no_clone": args.no_clone,
 		"clean": args.clean,
 		"install": args.install,
@@ -842,7 +865,7 @@ if args.symbols:
 					if not file.endswith('.a'):
 						dsym_files.append(file_path)
 
-		with zipfile.ZipFile(artifact_path / f'qt{qt_version}-symbols.zip', 'w', zipfile.ZIP_DEFLATED) as z:
+		with zipfile.ZipFile(artifact_path / qt_symbols_artifact_name, 'w', zipfile.ZIP_DEFLATED) as z:
 			for f in dsym_files:
 				print(f"Processing {f}...")
 				dsym_path = f + ".dSYM"
@@ -881,7 +904,7 @@ if args.symbols:
 				elif header == b"!<arch>" and file.endswith('.a'):
 					strip_files.append(file_path)
 
-		with zipfile.ZipFile(artifact_path / f'qt{qt_version}-symbols.zip', 'w', zipfile.ZIP_DEFLATED) as z:
+		with zipfile.ZipFile(artifact_path / qt_symbols_artifact_name, 'w', zipfile.ZIP_DEFLATED) as z:
 			for f in symbol_files:
 				debug_file = f + ".debug"
 				if subprocess.call(["objcopy", "--only-keep-debug",
@@ -918,7 +941,7 @@ if args.symbols:
 
 	elif sys.platform == 'win32':
 		print("\nCollecting debug symbols...")
-		with zipfile.ZipFile(artifact_path / f'qt{qt_version}-symbols.zip', 'w', zipfile.ZIP_DEFLATED) as z:
+		with zipfile.ZipFile(artifact_path / qt_symbols_artifact_name, 'w', zipfile.ZIP_DEFLATED) as z:
 			# PDBs from the build directory
 			for pdb in glob.glob(str(build_path) + '/**/*.pdb', recursive=True):
 				rel = os.path.relpath(pdb, build_path)
@@ -1052,13 +1075,13 @@ if args.sign:
 
 step("package artifacts")
 print("\nCreating archive...")
-with zipfile.ZipFile(artifact_path / f'qt{qt_version}.zip', 'w', zipfile.ZIP_DEFLATED) as z:
+with zipfile.ZipFile(artifact_path / qt_artifact_name, 'w', zipfile.ZIP_DEFLATED) as z:
 	for root, dirs, files in os.walk(install_path):
 		relpath = root.replace(str(install_path), "")
 		relpath = relpath.strip('\/')
 		for dir in dirs:
 			file_path = os.path.join(root, dir)
-			arc_name = os.path.join("Qt", qt_version_dir, compiler, relpath, dir)
+			arc_name = os.path.join(qt_archive_root, relpath, dir)
 			if os.path.islink(file_path):
 				info = zipfile.ZipInfo(arc_name, datetime.datetime.now().timetuple())
 				info.compress_type = zipfile.ZIP_DEFLATED
@@ -1067,7 +1090,7 @@ with zipfile.ZipFile(artifact_path / f'qt{qt_version}.zip', 'w', zipfile.ZIP_DEF
 		for file in files:
 			print(f"Adding {relpath}/{file}...")
 			file_path = os.path.join(root, file)
-			arc_name = os.path.join("Qt", qt_version_dir, compiler, relpath, file)
+			arc_name = os.path.join(qt_archive_root, relpath, file)
 			info = zipfile.ZipInfo(arc_name, datetime.datetime.now().timetuple())
 			info.compress_type = zipfile.ZIP_DEFLATED
 

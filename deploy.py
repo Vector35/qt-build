@@ -33,7 +33,7 @@ else:
 artifacts_path = Path(os.path.dirname(os.path.abspath(__file__))) / Path('artifacts')
 
 qt_zip_path = None
-for f in artifacts_path.glob('qt*.zip'):
+for f in artifacts_path.glob('qt_*.zip'):
 	qt_zip_path = f
 	break
 
