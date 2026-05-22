@@ -74,7 +74,7 @@ def _tool_versions():
 		tools["xcodebuild"] = ["xcodebuild", "-version"]
 		tools["xcode-select"] = ["xcode-select", "-p"]
 		tools["sw_vers"] = ["sw_vers"]
-	tools["poetry"] = ["poetry", "--version"]
+	tools["uv"] = ["uv", "--version"]
 	tools["mise"] = ["mise", "--version"]
 	return {name: _run(cmd) for name, cmd in tools.items()}
 

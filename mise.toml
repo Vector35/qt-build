@@ -1,6 +1,6 @@
 [tools]
 python = "3.13"
-poetry = "2.2.1"
+uv = "0.11.14"
 cmake = "4.3.3"
 ninja = "1.13.2"
 
@@ -8,6 +8,5 @@ ninja = "1.13.2"
 description = "Build Qt artifacts"
 env = { PYTHONUNBUFFERED = "1" }
 run = [
-	"poetry install --sync --no-root",
-	"poetry run python -u ./build.py",
+	"uv run --locked --python 3.13 python -u ./build.py",
 ]
