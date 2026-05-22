@@ -51,10 +51,12 @@ pipeline {
                     stage("Build") {
                         steps {
                             script {
-                                if (isUnix()) {
-                                    sh "mise build -- --universal --no-prompt --no-install --sign"
-                                } else {
-                                    bat "mise build -- --universal --no-prompt --no-install --sign"
+                                withEnv(["MISE_TRUSTED_CONFIG_PATHS=${env.WORKSPACE}"]) {
+                                    if (isUnix()) {
+                                        sh "mise build -- --universal --no-prompt --no-install --sign"
+                                    } else {
+                                        bat "mise build -- --universal --no-prompt --no-install --sign"
+                                    }
                                 }
                                 archiveArtifacts "artifacts/**"
                             }
