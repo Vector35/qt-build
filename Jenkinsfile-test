@@ -52,9 +52,9 @@ pipeline {
                         steps {
                             script {
                                 if (isUnix()) {
-                                    sh "./build_${os} --universal --no-prompt --no-install --sign"
+                                    sh "mise build -- --universal --no-prompt --no-install --sign"
                                 } else {
-                                    bat ".\\build_${os}.bat --universal --no-prompt --no-install --sign"
+                                    bat "mise build -- --universal --no-prompt --no-install --sign"
                                 }
                                 archiveArtifacts "artifacts/**"
                             }
