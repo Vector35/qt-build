@@ -249,14 +249,13 @@ if sys.version_info.major < 3:
 	exit(1)
 
 if args.pyside and "VIRTUAL_ENV" not in os.environ:
-    print('Running under Poetry is required to build PySide')
+    print('Running under a virtual environment is required to build PySide')
     exit(1)
 
 if sys.platform.startswith("win"):
 	make_cmd = "ninja"
 	parallel = []
 	cmake_generator_array = ["-G", "Ninja"]
-	python3_cmd = "py"
 
 	# Import vcvars from Visual Studio
 	vcvars = subprocess.check_output(fR"""call "C:\Program Files\Microsoft Visual Studio\{vs_version}\Professional\VC\Auxiliary\Build\vcvars64.bat" -vcvars_ver={msvc_build} && set""", shell=True)
@@ -272,7 +271,6 @@ else:
 	make_cmd = "ninja"
 	parallel = ["-j", str(args.jobs)]
 	cmake_generator_array = ["-G", "Ninja"]
-	python3_cmd = sys.executable
 
 if sys.platform == 'win32':
 	os.environ["HOME"] = os.environ["HOMEDRIVE"] + os.environ["HOMEPATH"]
@@ -421,13 +419,11 @@ emit_build_metadata(
 qt_patches = []
 for patch in sorted(qt_patches_path.iterdir()):
 	if patch.suffix == '.patch':
-		resolved_path = patch.resolve()
 		qt_patches.append(patch.resolve())
 
 pyside_patches = []
 for patch in sorted(pyside_patches_path.iterdir()):
 	if patch.suffix == '.patch':
-		resolved_path = patch.resolve()
 		pyside_patches.append(patch.resolve())
 
 if args.qt_source:
@@ -791,10 +787,10 @@ if args.pyside:
 		else:
 			os.environ["CFLAGS"] = os.environ.get("CFLAGS", "") + " -g1"
 			os.environ["CXXFLAGS"] = os.environ.get("CXXFLAGS", "") + " -g1"
-	if subprocess.call([python3_cmd, "-m", "pip", "install", "-r", "requirements.txt"], cwd=pyside_build_path) != 0:
+	if subprocess.call(["uv", "pip", "install", "--python", sys.executable, "-r", "requirements.txt"], cwd=pyside_build_path) != 0:
 		print("Python 3 bindings failed to install package dependencies")
 		sys.exit(1)
-	if subprocess.call([python3_cmd, "setup.py", "install", "--standalone", "--limited-api=yes", "--no-unity",
+	if subprocess.call([sys.executable, "setup.py", "install", "--standalone", "--limited-api=yes", "--no-unity",
 			"--module-subset=" + ",".join(pyside_modules),
 			"--qt-target-path=" + str(install_path),
 			"--qtpaths=" + str(qtpaths),
