@@ -51,9 +51,9 @@ pipeline {
                     stage("Build") {
                         steps {
                             copyArtifacts(
-                                projectName: "LLVM/llvm-main-pipeline/os=${os}",
+                                projectName: "LLVM/llvm-main-pipeline",
                                 selector: lastSuccessful(),
-                                filter: "artifacts/libclang*.zip",
+                                filter: "artifacts/libclang_${os}_*.zip",
                                 target: "artifacts-extern"
                             )
                             script {
