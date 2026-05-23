@@ -1,50 +1,77 @@
-qt-build
---
+# Binary Ninja's Qt Builds
 
-This repository contains scripts and patches for building Qt and related sub-projects for use in Binary Ninja.
+[Binary Ninja](https://binary.ninja/) uses Qt and PySide for its user interface and related plugins. This repository includes all of the patches and build infrastructure that we use to make the files we include with the product for all of our supported release platforms.
 
-## Build Process
-Run the `./build_<platform>` that matches your host's platform. Verify that the build configuration is correct, and type Y to start.
 
-The build will be installed in the directory specified by `$QT_INSTALL_DIR` (or `~/Qt` if unset) unless you pass `--no-install` to the script.
+## Prerequisites
 
-## Environment Variables
+The build process is managed by *[mise-en-place](https://mise.en.dev/)* (`mise`) and is the primary requirement for builds. See [this page](https://mise.en.dev/installing-mise.html) for installation options.
+
+You will also need `msvc` (Windows), `clang` (macOS), or `gcc` (Linux) to compile.
+
+Finally, you will also need our custom copy of `libclang`, which can be build from [this repository](https://github.com/Vector35/llvm-build). If you are a Vector 35 employee, you can get a pre-built copy from our internal build server.
+
+
+## Quick Start
+
+Run the `mise` task, review the printed configuration, and confirm the prompt:
+
+```sh
+mise build
+```
+
+The `mise` task invokes `build.py` through `uv` using the managed Python toolchain. By default, installable output is copied to `$QT_INSTALL_DIR/<version>` or `~/Qt/<version>`. Use `--no-install` to skip the local install step.
+
+You can pass build options after `--` so they are forwarded to `build.py` rather than parsed by `mise`:
+
+```sh
+mise build -- --no-prompt --no-install
+```
+
+### Supported Arguments
+
+- `--no-clone`: Reuse existing source checkout
+- `--clean` / `--no-clean`: Clean up before building
+- `--prompt` / `--no-prompt`: Interactive confirmation
+- `--install` / `--no-install`: Local installation
+- `--sign` / `--no-sign`: Signing
+- `--mirror <url>`: Use a source mirror
+- `--build-dir <path>`: Use a custom build directory
+- `-j, --jobs <n>`: Set POSIX build parallelism level
+- `--debug`, `--asan`, `--tsan`: Select a build variant
+- `--universal`: Build both x86_64 and arm64 on supported macOS hosts
+- `--qt-source <path>` / `--pyside-source <path>`: Use provided source directories instead of cloning
+- `--patch <path>`: Apply an additional patch
+- `--no-pyside`: Skip building PySide
+- `--symbols` / `--no-symbols`: Control symbol archive generation
+
+### Environment Variables
 
 CLI arguments override environment defaults. Boolean values accept `1`, `true`, `yes`, `on`, `y`, `0`, `false`, `no`, `off`, or `n` case-insensitively. Secret-like values are redacted in `artifacts/build-metadata.json`.
 
 | Variable | Purpose |
 | --- | --- |
-| `BUILD_DIR` | Default for `--build-dir`; defaults to `build` under the repo. |
-| `ARTIFACTS_DIR` | Artifact output directory; defaults to `artifacts` under the repo. |
+| `BUILD_DIR` | Default for `--build-dir`. Defaults to `build` under the repo. |
+| `ARTIFACTS_DIR` | Artifact output directory. Defaults to `artifacts` under the repo. |
 | `SOURCE_MIRROR` | Default for `--mirror`. |
 | `JOBS` | Default for `-j/--jobs` on POSIX. |
-| `SIGN` | Default for `--sign`; use `--no-sign` to override. |
-| `NO_INSTALL` | Default equivalent of `--no-install`; use `--install` to override. |
-| `NO_PROMPT` | Default equivalent of `--no-prompt`; use `--prompt` to override. |
-| `CLEAN` | Sets whether to clean before building; use `--clean` or `--no-clean` to override. |
+| `SIGN` | Default for `--sign`. Use `--no-sign` to override. |
+| `NO_INSTALL` | Default equivalent of `--no-install`. Use `--install` to override. |
+| `NO_PROMPT` | Default equivalent of `--no-prompt`. Use `--prompt` to override. |
+| `CLEAN` | Sets whether to clean before building. Use `--clean` or `--no-clean` to override. |
 | `BUILD_VARIANT` | Default build variant: `release`, `debug`, `asan`, or `tsan`. CLI variant flags override it. |
 | `QT_INSTALL_DIR` | Local install destination parent for Qt when installation is enabled. |
-| `LLVM_INSTALL_DIR` | Location of the libclang dependency used to build PySide. |
+| `LLVM_INSTALL_DIR` | Location of the `libclang` dependency used to build PySide. Default is `~/libclang` and files are expected in `~/libclang/<version>`. |
 | `YUBIKEY_PIN` | Windows signing PIN used when signing is enabled. |
 
-## Requirements
 
-This build process uses [Poetry](https://python-poetry.org/) for dependency management. You'll need to `pip3 install poetry` (or equivalent for your system) to be able to build.
+## Build Output
 
-You will also require:
+Artifacts are written under `artifacts/` unless `ARTIFACTS_DIR` overrides the directory.
 
-- Compiler (tested, though older may work too)
-  - macOS: Xcode 16 or Command Line Tools for macOS 15 (Apple Clang 16.0.0) 
-  - Windows: VS 2022 Professional, v143 (14.34)
-  - Linux: GCC 11.4+
-- CMake
-- Ninja
-- libclang (path can be set with `LLVM_INSTALL_DIR`)
-- On Linux, you will need the following packages to build the UI components of Qt:
-  - See [https://doc.qt.io/qt-6/linux-requirements.html](https://doc.qt.io/qt-6/linux-requirements.html) 
-  - `sudo apt install libfontconfig1-dev libfreetype-dev libgtk-3-dev libx11-dev libx11-xcb-dev libxcb-cursor-dev libxcb-glx0-dev libxcb-icccm4-dev libxcb-image0-dev libxcb-keysyms1-dev libxcb-randr0-dev libxcb-render-util0-dev libxcb-shape0-dev libxcb-shm0-dev libxcb-sync-dev libxcb-util-dev libxcb-xfixes0-dev libxcb-xkb-dev libxcb1-dev libxext-dev libxfixes-dev libxi-dev libxkbcommon-dev libxkbcommon-x11-dev libxrender-dev libwayland-dev libxcb-xinerama0-dev`
+| Artifact | Contents |
+| --- | --- |
+| `qt_<platform>_<version>.zip` | Qt tree rooted at `Qt/<version>` |
+| `qt_symbols_<platform>_<version>.zip` | Separate debug symbols when symbol extraction is enabled |
 
-## Using provided source bundle
-You can also use the source bundle referenced in the [documentation](https://docs.binary.ninja/about/open-source.html#building-qt) to build Qt. Download and extract the source bundle referenced in the documentation under the "Building Qt" section, then run the following command:
-
-`./build_<platform> --qt-source <qt-source-path> --pyside-source <pyside-source-path>`
+Build metadata is written to `artifacts/build-metadata.json` and includes the resolved configuration, artifact names, internal roots, and redacted secret-like values.
