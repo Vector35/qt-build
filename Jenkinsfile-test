@@ -50,6 +50,12 @@ pipeline {
                 stages {
                     stage("Build") {
                         steps {
+                            copyArtifacts(
+                                projectName: "LLVM/llvm-main-pipeline/os=${os}",
+                                selector: lastSuccessful(),
+                                filter: "artifacts/libclang*.zip",
+                                target: "artifacts-extern"
+                            )
                             script {
                                 withEnv(["MISE_TRUSTED_CONFIG_PATHS=${env.WORKSPACE}"]) {
                                     if (isUnix()) {
