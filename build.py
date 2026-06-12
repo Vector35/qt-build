@@ -50,6 +50,10 @@ def normalized_platform():
 	return sys.platform
 
 
+def should_package_file(file_name):
+	return file_name != '.DS_Store'
+
+
 def keychain_unlocker():
 	keychain_unlocker = os.environ["HOME"] + "/unlock-keychain"
 	if os.path.exists(keychain_unlocker):
@@ -869,7 +873,7 @@ if args.symbols:
 					print(f"Failed to generate dSYM from {f}")
 					sys.exit(1)
 				for i in glob.glob(dsym_path + "/**/*", recursive=True):
-					if os.path.isfile(i):
+					if os.path.isfile(i) and should_package_file(os.path.basename(i)):
 						z.write(i, os.path.relpath(i, install_path))
 				shutil.rmtree(dsym_path)
 
@@ -1084,6 +1088,8 @@ with zipfile.ZipFile(artifact_path / qt_artifact_name, 'w', zipfile.ZIP_DEFLATED
 				info.external_attr = 0o120755 << 16
 				z.writestr(info, os.readlink(file_path))
 		for file in files:
+			if not should_package_file(file):
+				continue
 			print(f"Adding {relpath}/{file}...")
 			file_path = os.path.join(root, file)
 			arc_name = os.path.join(qt_archive_root, relpath, file)

@@ -168,7 +168,7 @@ if not args.skip_clone:
 		sys.exit(1)
 
 print("Compressing...")
-if subprocess.call(["tar", "cJf", os.path.join(artifact_path, f"qt{qt_version}.tar.xz"), f"qt{qt_version}", f"pyside{qt_version}"], cwd=source_path) != 0:
+if subprocess.call(["tar", "cJf", os.path.join(artifact_path, f"qt{qt_version}.tar.xz"), "--exclude=.DS_Store", f"qt{qt_version}", f"pyside{qt_version}"], cwd=source_path) != 0:
 	print("Failed to compress source")
 	sys.exit(1)
 
