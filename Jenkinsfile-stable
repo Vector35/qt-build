@@ -11,8 +11,8 @@ pipeline {
         label "master"
     }
     options {
-        // Allow self to copy artifacts
-        copyArtifactPermission("${JOB_BASE_NAME}")
+        // Allow downstream jobs to copy artifacts
+        copyArtifactPermission("*")
 
         // Limit to 1 build per branch at a time
         disableConcurrentBuilds()
