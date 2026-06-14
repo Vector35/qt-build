@@ -40,6 +40,24 @@ def remove_dir(path):
 		shutil.rmtree(path)
 
 
+def install_staged_output(staged_path, user_qt_path):
+	user_qt_old_path = user_qt_path.parent / (user_qt_path.name + '-old')
+
+	if user_qt_old_path.exists():
+		print(f'Removing backup install at {user_qt_old_path}')
+		remove_dir(user_qt_old_path)
+
+	if user_qt_path.exists():
+		print(f'Overwriting existing Qt at {user_qt_path} with {staged_path}')
+		print(f'Moving {user_qt_path} to {user_qt_old_path} just in case')
+		user_qt_path.rename(user_qt_old_path)
+	else:
+		print(f'Installing new Qt at {user_qt_path} with {staged_path}')
+
+	user_qt_path.parent.mkdir(parents=True, exist_ok=True)
+	shutil.copytree(staged_path, user_qt_path, symlinks=True)
+
+
 def normalized_platform():
 	if sys.platform == 'darwin':
 		return 'macosx'
@@ -1111,7 +1129,7 @@ with zipfile.ZipFile(artifact_path / qt_artifact_name, 'w', zipfile.ZIP_DEFLATED
 
 if args.install:
 	step("install locally/deploy if requested")
-	import deploy
+	install_staged_output(install_path, user_qt_parent_path)
 
 
 if args.clean:
