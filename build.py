@@ -17,14 +17,44 @@ from build_metadata import emit_build_metadata
 from target_qt6_version import qt_version, llvm_version, msvc_build, msvc_dir_name, vs_version, min_macos, qt_modules, pyside_modules
 
 
+MAKE_CMD = "ninja"
+CMAKE_GENERATOR = ["-G", "Ninja"]
+DEFAULT_QT_MIRROR = "https://github.com/qt/"
+QT_REPO_URL = "https://github.com/qt/qt5.git"
+PYSIDE_REPO_URL = "https://codereview.qt-project.org/pyside/pyside-setup"
+ICU_REPO_URL = "https://github.com/unicode-org/icu.git"
+ICU_VERSION = "release-68-2"
+QLITEHTML_REPO_URL = "https://code.qt.io/playground/qlitehtml.git"
+WINDOWS_TIMESTAMP_SERVERS = ("http://timestamp.digicert.com", "http://timestamp.comodoca.com/rfc3161")
+BUILD_RETRY_LIMIT = 5
+ZIP_SYMLINK_ATTR = 0o120755 << 16
+ZIP_EXECUTABLE_ATTR = 0o755 << 16 # -rwxr-xr-x
+ZIP_REGULAR_FILE_ATTR = 0o644 << 16 # -rw-r--r--
+MACOS_COMPILER = "clang_64"
+LINUX_COMPILER = "gcc_64"
+MACOS_PLUGIN_TYPES = ("platforms", "imageformats")
+LINUX_PLUGIN_TYPES = (
+	"platforms", "imageformats", "wayland-decoration-client", "wayland-graphics-integration-client",
+	"wayland-shell-integration", "platforminputcontexts"
+)
+
+
 def step(name):
 	print(f"\n=== Step: {name} ===")
 
 
-build_opts = ["-no-static", "-release", "-opensource", "-confirm-license", "-nomake", "examples",
+def run_checked(cmd, error_message, cwd=None, shell=False):
+	if subprocess.call(cmd, cwd=cwd, shell=shell) != 0:
+		print(error_message)
+		sys.exit(1)
+
+
+BASE_BUILD_OPTS = ["-no-static", "-release", "-opensource", "-confirm-license", "-nomake", "examples",
 	"-nomake", "tests", "-no-feature-tuiotouch", "-qt-libpng", "-qt-libjpeg", "-qt-libb2", "-no-glib",
 	"-qt-tiff", "-qt-webp", "-qt-pcre", "-no-feature-zstd", "-no-feature-brotli", "-no-feature-graphicseffect",
 	"-no-feature-style-windowsvista", "-no-feature-style-windows11"]
+
+build_opts = list(BASE_BUILD_OPTS)
 
 if sys.platform == 'linux':
 	build_opts += ["-xcb", "-xcb-xlib"]
@@ -112,8 +142,7 @@ def mac_sign(path):
 
 
 def signWindowsFiles(path: str):
-	timeServers = ["http://timestamp.digicert.com", "http://timestamp.comodoca.com/rfc3161"]
-	for timeServer in timeServers:
+	for timeServer in WINDOWS_TIMESTAMP_SERVERS:
 		proc = subprocess.run([
 			"java", "-jar",
 			"C:\\jenkins\\jsign.jar",
@@ -264,7 +293,7 @@ if args.mirror:
 	print(f"Using source mirror: {args.mirror}")
 	mirror = ["--mirror", args.mirror]
 else:
-	mirror = ["--mirror", "https://github.com/qt/"]
+	mirror = ["--mirror", DEFAULT_QT_MIRROR]
 
 if sys.version_info.major < 3:
 	print('Please build Qt 6 with Python 3')
@@ -275,9 +304,9 @@ if args.pyside and "VIRTUAL_ENV" not in os.environ:
     exit(1)
 
 if sys.platform.startswith("win"):
-	make_cmd = "ninja"
+	make_cmd = MAKE_CMD
 	parallel = []
-	cmake_generator_array = ["-G", "Ninja"]
+	cmake_generator_array = CMAKE_GENERATOR
 
 	# Import vcvars from Visual Studio
 	vcvars = subprocess.check_output(fR"""call "C:\Program Files\Microsoft Visual Studio\{vs_version}\Professional\VC\Auxiliary\Build\vcvars64.bat" -vcvars_ver={msvc_build} && set""", shell=True)
@@ -290,9 +319,9 @@ if sys.platform.startswith("win"):
 		value = b'='.join(parts[1:]).decode()
 		os.environ[key] = value
 else:
-	make_cmd = "ninja"
+	make_cmd = MAKE_CMD
 	parallel = ["-j", str(args.jobs)]
-	cmake_generator_array = ["-G", "Ninja"]
+	cmake_generator_array = CMAKE_GENERATOR
 
 if sys.platform == 'win32':
 	os.environ["HOME"] = os.environ["HOMEDRIVE"] + os.environ["HOMEPATH"]
@@ -300,20 +329,21 @@ if sys.platform == 'win32':
 platform_name = normalized_platform()
 
 # Copy libclang to the build directory
-if os.path.exists(f'./artifacts-extern/artifacts/libclang_{platform_name}_{llvm_version}.zip'):
-	with zipfile.ZipFile(f'./artifacts-extern/artifacts/libclang_{platform_name}_{llvm_version}.zip') as zf:
+extern_libclang_artifact = Path("artifacts-extern") / "artifacts" / f"libclang_{platform_name}_{llvm_version}.zip"
+if extern_libclang_artifact.exists():
+	with zipfile.ZipFile(extern_libclang_artifact) as zf:
 		zf.extractall('build')
-		os.environ['LLVM_INSTALL_DIR'] = os.path.realpath('build/libclang')
+		os.environ['LLVM_INSTALL_DIR'] = str((Path("build") / "libclang").resolve())
 
 if "LLVM_INSTALL_DIR" in os.environ:
-	llvm_dir = os.path.join(os.environ["LLVM_INSTALL_DIR"], llvm_version)
+	llvm_dir = Path(os.environ["LLVM_INSTALL_DIR"]) / llvm_version
 else:
-	llvm_dir = os.path.join(os.environ["HOME"], "libclang", llvm_version)
-if not os.path.exists(llvm_dir):
+	llvm_dir = Path(os.environ["HOME"]) / "libclang" / llvm_version
+if not llvm_dir.exists():
 	print("libclang needs to be installed.")
-	print(f'Set LLVM_INSTALL_DIR, or install to {os.path.join(os.environ["HOME"], "libclang", llvm_version)}')
+	print(f'Set LLVM_INSTALL_DIR, or install to {Path(os.environ["HOME"]) / "libclang" / llvm_version}')
 	sys.exit(1)
-os.environ["LLVM_INSTALL_DIR"] = llvm_dir
+os.environ["LLVM_INSTALL_DIR"] = str(llvm_dir)
 
 base_dir = Path(__file__).resolve().parent
 if args.build_dir is not None:
@@ -336,9 +366,9 @@ qt_symbols_artifact_name = f'qt_symbols_{platform_name}_{qt_version}.zip'
 if sys.platform == 'win32':
 	compiler = msvc_dir_name
 elif sys.platform == 'darwin':
-	compiler = "clang_64"
+	compiler = MACOS_COMPILER
 else:
-	compiler = "gcc_64"
+	compiler = LINUX_COMPILER
 install_path = qt_dir / "install" / "Qt" / qt_version_dir / compiler
 qt_archive_root = os.path.join('Qt', qt_version_dir)
 qt_patches_path = base_dir / 'qt_patches'
@@ -512,53 +542,41 @@ if not args.no_clone:
 	else:
 		print("\nCloning Qt...")
 		if args.mirror:
-			if subprocess.call(["git", "clone", f"{args.mirror}qt5.git", qt_source_path]) != 0:
-				print("Failed to clone Qt git repository")
-				sys.exit(1)
+			run_checked(["git", "clone", f"{args.mirror}qt5.git", qt_source_path], "Failed to clone Qt git repository")
 		else:
-			if subprocess.call(["git", "clone", "https://github.com/qt/qt5.git", qt_source_path]) != 0:
-				print("Failed to clone Qt git repository")
-				sys.exit(1)
-		if subprocess.call(["git", "checkout", qt_version], cwd=qt_source_path) != 0:
-			print("Failed to check out branch/tag '{}'".format(qt_version))
-			sys.exit(1)
+			run_checked(["git", "clone", QT_REPO_URL, qt_source_path], "Failed to clone Qt git repository")
+		run_checked(["git", "checkout", qt_version], "Failed to check out branch/tag '{}'".format(qt_version), cwd=qt_source_path)
 
 		init_repo_options = ["--module-subset=" + ",".join(qt_modules), "--no-update"]
 		if sys.platform == 'win32':
-			if subprocess.call(["perl", os.path.join(qt_source_path, "init-repository.pl")] + init_repo_options + mirror, cwd=qt_source_path) != 0:
-				print("Failed to initialize submodules")
-				sys.exit(1)
+			run_checked(["perl", qt_source_path / "init-repository.pl"] + init_repo_options + mirror, "Failed to initialize submodules", cwd=qt_source_path)
 		else:
-			if subprocess.call([os.path.join(qt_source_path, "init-repository")] + init_repo_options + mirror, cwd=qt_source_path) != 0:
-				print("Failed to initialize submodules")
-				sys.exit(1)
+			run_checked([qt_source_path / "init-repository"] + init_repo_options + mirror, "Failed to initialize submodules", cwd=qt_source_path)
 
 		# Check out submodules, but don't check out recursively until we've had a chance to patch
 		# module paths
-		if subprocess.call(["git", "submodule", "update", "--init"] + qt_modules, cwd=qt_source_path) != 0:
-			print("Failed to check out submodules")
-			sys.exit(1)
+		run_checked(["git", "submodule", "update", "--init"] + qt_modules, "Failed to check out submodules", cwd=qt_source_path)
 
 		if args.mirror:
 			# Fix qttools .gitmodules to use mirror
-			open(os.path.join(qt_source_path, "qttools", ".gitmodules"), 'w').write(
+			(qt_source_path / "qttools" / ".gitmodules").write_text(
 				'[submodule "src/assistant/qlitehtml"]\n' +
 				'    path = src/assistant/qlitehtml\n' +
-				f'    url = {args.mirror}playground/qlitehtml.git'
+				f'    url = {args.mirror}playground/qlitehtml.git',
+				encoding='utf-8'
 			)
 		else:
 			# Fix qttools to use absolute path since the relative path fails on anything that isn't the
 			# official repo, which is so slow and unreliable it fails many builds.
-			open(os.path.join(qt_source_path, "qttools", ".gitmodules"), 'w').write(
+			(qt_source_path / "qttools" / ".gitmodules").write_text(
 				'[submodule "src/assistant/qlitehtml"]\n' +
 				'    path = src/assistant/qlitehtml\n' +
-				f'    url = https://code.qt.io/playground/qlitehtml.git'
+				f'    url = {QLITEHTML_REPO_URL}',
+				encoding='utf-8'
 			)
 
 		# Check out all submodules
-		if subprocess.call(["git", "submodule", "update", "--init", "--recursive"] + qt_modules, cwd=qt_source_path) != 0:
-			print("Failed to check out submodules")
-			sys.exit(1)
+		run_checked(["git", "submodule", "update", "--init", "--recursive"] + qt_modules, "Failed to check out submodules", cwd=qt_source_path)
 
 		step("apply patches")
 		for patch in qt_patches:
@@ -572,19 +590,10 @@ if not args.no_clone:
 	if sys.platform == 'linux':
 		print("Cloning libicu")
 		if args.mirror:
-			if subprocess.call(["git", "clone", f"{args.mirror}icu.git",
-				os.path.join(qt_source_path, "icu")]) != 0:
-				print("Failed to clone Qt git repository")
-				sys.exit(1)
+			run_checked(["git", "clone", f"{args.mirror}icu.git", qt_source_path / "icu"], "Failed to clone Qt git repository")
 		else:
-			if subprocess.call(["git", "clone", "https://github.com/unicode-org/icu.git",
-				os.path.join(qt_source_path, "icu")]) != 0:
-				print("Failed to clone Qt git repository")
-				sys.exit(1)
-		icu_version = "release-68-2"
-		if subprocess.call(["git", "checkout", icu_version], cwd=os.path.join(qt_source_path, "icu")) != 0:
-			print("Failed to check out branch '{}'".format(icu_version))
-			sys.exit(1)
+			run_checked(["git", "clone", ICU_REPO_URL, qt_source_path / "icu"], "Failed to clone Qt git repository")
+		run_checked(["git", "checkout", ICU_VERSION], "Failed to check out branch '{}'".format(ICU_VERSION), cwd=qt_source_path / "icu")
 
 	if args.pyside:
 		if args.pyside_source:
@@ -593,15 +602,11 @@ if not args.no_clone:
 		else:
 			print("\nCloning pyside-setup...")
 			if args.mirror:
-				if subprocess.call(["git", "clone", "-b", qt_version, "--depth", "1",
-									f"{args.mirror}pyside-setup", pyside_source_path]) != 0:
-					print("Failed to clone PySide git repository")
-					sys.exit(1)
+				run_checked(["git", "clone", "-b", qt_version, "--depth", "1",
+					f"{args.mirror}pyside-setup", pyside_source_path], "Failed to clone PySide git repository")
 			else:
-				if subprocess.call(["git", "clone", "-b", qt_version, "--depth", "1",
-									"https://codereview.qt-project.org/pyside/pyside-setup", pyside_source_path]) != 0:
-					print("Failed to clone PySide git repository")
-					sys.exit(1)
+				run_checked(["git", "clone", "-b", qt_version, "--depth", "1",
+					PYSIDE_REPO_URL, pyside_source_path], "Failed to clone PySide git repository")
 
 			step("apply patches")
 			for patch in pyside_patches:
@@ -619,21 +624,19 @@ if sys.platform == 'darwin':
 	if platform.processor() != 'arm' or args.universal:
 		step("configure dependencies/toolchain")
 		print("\nConfiguring Qt for x86_64...")
-		os.mkdir(os.path.join(build_path, "x86_64"))
+		(build_path / "x86_64").mkdir()
 		os.environ["CMAKE_OSX_ARCHITECTURES"] = "x86_64"
-		if subprocess.call([os.path.join(qt_source_path, "configure")] + build_opts +
-			["-prefix", os.path.join(build_path, "target_x86_64")] + configure_extra, cwd=os.path.join(build_path, "x86_64")) != 0:
-			print("Failed to configure")
-			sys.exit(1)
+		run_checked([qt_source_path / "configure"] + build_opts +
+			["-prefix", build_path / "target_x86_64"] + configure_extra, "Failed to configure", cwd=build_path / "x86_64")
 
 		step("build")
 		print("\nBuilding Qt for x86_64...")
 		# Build is unreliable but continues without issue, so try up to 5 times
 		retry_count = 0
 		while True:
-			if subprocess.call([make_cmd] + parallel, cwd=os.path.join(build_path, "x86_64")) != 0:
+			if subprocess.call([make_cmd] + parallel, cwd=build_path / "x86_64") != 0:
 				retry_count += 1
-				if retry_count > 5:
+				if retry_count > BUILD_RETRY_LIMIT:
 					print("Qt failed to build")
 					sys.exit(1)
 			else:
@@ -641,28 +644,24 @@ if sys.platform == 'darwin':
 
 		step("install/stage")
 		print("\nInstalling Qt for x86_64...")
-		if subprocess.call([make_cmd, "install"], cwd=os.path.join(build_path, "x86_64")) != 0:
-			print("Qt failed to install")
-			sys.exit(1)
+		run_checked([make_cmd, "install"], "Qt failed to install", cwd=build_path / "x86_64")
 
 	if platform.processor() == 'arm':
 		step("configure dependencies/toolchain")
 		print("\nConfiguring Qt for ARM64...")
-		os.mkdir(os.path.join(build_path, "arm64"))
+		(build_path / "arm64").mkdir()
 		os.environ["CMAKE_OSX_ARCHITECTURES"] = "arm64"
-		if subprocess.call([os.path.join(qt_source_path, "configure")] + build_opts +
-			["-prefix", os.path.join(build_path, "target_arm64")] + configure_extra, cwd=os.path.join(build_path, "arm64")) != 0:
-			print("Failed to configure")
-			sys.exit(1)
+		run_checked([qt_source_path / "configure"] + build_opts +
+			["-prefix", build_path / "target_arm64"] + configure_extra, "Failed to configure", cwd=build_path / "arm64")
 
 		step("build")
 		print("\nBuilding Qt for ARM64...")
 		# Build is unreliable but continues without issue, so try up to 5 times
 		retry_count = 0
 		while True:
-			if subprocess.call([make_cmd] + parallel, cwd=os.path.join(build_path, "arm64")) != 0:
+			if subprocess.call([make_cmd] + parallel, cwd=build_path / "arm64") != 0:
 				retry_count += 1
-				if retry_count > 5:
+				if retry_count > BUILD_RETRY_LIMIT:
 					print("Qt failed to build")
 					sys.exit(1)
 			else:
@@ -670,9 +669,7 @@ if sys.platform == 'darwin':
 
 		step("install/stage")
 		print("\nInstalling Qt for ARM64...")
-		if subprocess.call([make_cmd, "install"], cwd=os.path.join(build_path, "arm64")) != 0:
-			print("Qt failed to install")
-			sys.exit(1)
+		run_checked([make_cmd, "install"], "Qt failed to install", cwd=build_path / "arm64")
 
 		if args.universal:
 			print("\nCreating universal build...")
@@ -683,18 +680,18 @@ if sys.platform == 'darwin':
 			shutil.copytree(os.path.join(build_path, "target_arm64"), install_path, dirs_exist_ok=True, symlinks=True)
 
 			for root, dirs, files in os.walk(install_path):
-				rel_path = root.replace(str(install_path), "")
-				rel_path = rel_path.strip('\/')
+				rel_path = Path(root).resolve().relative_to(install_path.resolve())
 				for filename in files:
-					if os.path.islink(os.path.join(root, filename)):
+					file_path = Path(root) / filename
+					if file_path.is_symlink():
 						continue
-					if not os.path.isfile(os.path.join(root, filename)):
+					if not file_path.is_file():
 						continue
-					header = open(os.path.join(root, filename), 'rb').read(4)
+					header = file_path.open('rb').read(4)
 					if header != b"\xcf\xfa\xed\xfe" and header != b"!<ar":
 						continue
-					subprocess.call(["lipo", "-create", os.path.join(build_path, "target_x86_64", rel_path, filename),
-						os.path.join(build_path, "target_arm64", rel_path, filename), "-output", os.path.join(root, filename)])
+					subprocess.call(["lipo", "-create", build_path / "target_x86_64" / rel_path / filename,
+						build_path / "target_arm64" / rel_path / filename, "-output", file_path])
 		else:
 			if os.path.exists(install_path):
 				remove_dir(install_path)
@@ -714,25 +711,20 @@ else:
 		step("configure dependencies/toolchain")
 		print("\n Configuring libicu...")
 
-		if subprocess.call([os.path.join(qt_source_path, "icu", "icu4c", "source", "configure"),
+		icu_source_path = qt_source_path / "icu" / "icu4c" / "source"
+		run_checked([icu_source_path / "configure",
 			"--disable-draft", "--disable-extras", "--disable-icuio",
 			"--disable-layoutex", "--disable-tools", "--disable-tests",
 			"--disable-samples", "--prefix=" + str(install_path)],
-			cwd=os.path.join(qt_source_path, "icu", "icu4c", "source")) != 0:
-			print("Failed to configure")
-			sys.exit(1)
+			"Failed to configure", cwd=icu_source_path)
 
 		step("build")
 		print("\nBuilding libicu...")
-		if subprocess.call(["make"] + parallel, cwd=os.path.join(qt_source_path, "icu", "icu4c", "source")) != 0:
-			print("libicu failed to build")
-			sys.exit(1)
+		run_checked(["make"] + parallel, "libicu failed to build", cwd=icu_source_path)
 
 		step("install/stage")
 		print("\nInstalling Qt...")
-		if subprocess.call(["make", "install"], cwd=os.path.join(qt_source_path, "icu", "icu4c", "source")) != 0:
-			print("Qt failed to install")
-			sys.exit(1)
+		run_checked(["make", "install"], "Qt failed to install", cwd=icu_source_path)
 
 		os.environ["ICU_PREFIX"] = str(install_path)
 
@@ -742,15 +734,11 @@ else:
 	print("\nConfiguring Qt...")
 	if sys.platform == 'win32':
 		build_opts += ["-directwrite"]  # use DirectWrite for font rendering on Windows
-		if subprocess.call([os.path.join(qt_source_path, "configure.bat")] + build_opts +
-			["-prefix", install_path] + configure_extra, cwd=build_path) != 0:
-			print("Failed to configure")
-			sys.exit(1)
+		run_checked([qt_source_path / "configure.bat"] + build_opts +
+			["-prefix", install_path] + configure_extra, "Failed to configure", cwd=build_path)
 	else:
-		if subprocess.call([os.path.join(qt_source_path, "configure")] + build_opts +
-			["-prefix", install_path] + configure_extra, cwd=build_path) != 0:
-			print("Failed to configure")
-			sys.exit(1)
+		run_checked([qt_source_path / "configure"] + build_opts +
+			["-prefix", install_path] + configure_extra, "Failed to configure", cwd=build_path)
 
 	step("build")
 	print("\nBuilding Qt...")
@@ -759,7 +747,7 @@ else:
 	while True:
 		if subprocess.call([make_cmd] + parallel, cwd=build_path) != 0:
 			retry_count += 1
-			if retry_count > 5:
+			if retry_count > BUILD_RETRY_LIMIT:
 				print("Qt failed to build")
 				sys.exit(1)
 		else:
@@ -767,9 +755,7 @@ else:
 
 	step("install/stage")
 	print("\nInstalling Qt...")
-	if subprocess.call([make_cmd, "install"], cwd=build_path) != 0:
-		print("Qt failed to install")
-		sys.exit(1)
+	run_checked([make_cmd, "install"], "Qt failed to install", cwd=build_path)
 
 	if sys.platform == 'linux':
 		# Older compilers don't seem to want to take libicu built above, just make sure we
@@ -809,18 +795,15 @@ if args.pyside:
 		else:
 			os.environ["CFLAGS"] = os.environ.get("CFLAGS", "") + " -g1"
 			os.environ["CXXFLAGS"] = os.environ.get("CXXFLAGS", "") + " -g1"
-	if subprocess.call(["uv", "pip", "install", "--python", sys.executable, "-r", "requirements.txt"], cwd=pyside_build_path) != 0:
-		print("Python 3 bindings failed to install package dependencies")
-		sys.exit(1)
-	if subprocess.call([sys.executable, "setup.py", "install", "--standalone", "--limited-api=yes", "--no-unity",
+	run_checked(["uv", "pip", "install", "--python", sys.executable, "-r", "requirements.txt"],
+		"Python 3 bindings failed to install package dependencies", cwd=pyside_build_path)
+	run_checked([sys.executable, "setup.py", "install", "--standalone", "--limited-api=yes", "--no-unity",
 			"--module-subset=" + ",".join(pyside_modules),
 			"--qt-target-path=" + str(install_path),
 			"--qtpaths=" + str(qtpaths),
 			"--macos-deployment-target=" + min_macos,
 			"--prefix=" + str(pyside_install_path),
-		] + parallel, cwd=pyside_build_path) != 0:
-		print("Python 3 bindings failed to build")
-		sys.exit(1)
+		] + parallel, "Python 3 bindings failed to build", cwd=pyside_build_path)
 
 	if sys.platform.startswith("win"):
 		# pyside/Lib/site-packages -> pyside/site-packages
@@ -979,77 +962,55 @@ if args.symbols:
 # Create modified libraries that contain the correct rpath for bundling. These will be signed separately
 # so that each bundle does not need to re-sign the libraries.
 if sys.platform == 'darwin':
-	plugin_types = ["platforms", "imageformats"]
 	os.mkdir(bundle_path)
-	for plugin_type in plugin_types:
+	for plugin_type in MACOS_PLUGIN_TYPES:
 		os.mkdir(os.path.join(bundle_path, plugin_type))
 	if args.pyside:
 		os.mkdir(os.path.join(bundle_path, "PySide6"))
 
-	for plugin_type in plugin_types:
+	for plugin_type in MACOS_PLUGIN_TYPES:
 		for f in glob.glob(os.path.join(install_path, "plugins", plugin_type, "*.dylib")):
 			target = os.path.join(bundle_path, plugin_type, os.path.basename(f))
 			shutil.copy(f, target)
-			if subprocess.call(["install_name_tool", "-delete_rpath", "@loader_path/../../lib", target]) != 0:
-				print(f"Failed to remove rpath from {target}")
-				sys.exit(1)
-			if subprocess.call(["install_name_tool", "-add_rpath", "@loader_path/../../../Frameworks", target]) != 0:
-				print(f"Failed to add framework rpath to {target}")
-				sys.exit(1)
+			run_checked(["install_name_tool", "-delete_rpath", "@loader_path/../../lib", target], f"Failed to remove rpath from {target}")
+			run_checked(["install_name_tool", "-add_rpath", "@loader_path/../../../Frameworks", target], f"Failed to add framework rpath to {target}")
 
 	if args.pyside:
 		for f in glob.glob(os.path.join(pyside_install_path, "site-packages", "PySide6", "*.so")):
 			target = os.path.join(bundle_path, "PySide6", os.path.basename(f))
 			shutil.copy(f, target)
-			if subprocess.call(["install_name_tool", "-delete_rpath", "@loader_path/Qt/lib", target]) != 0:
-				print(f"Failed to remove rpath from {target}")
-				sys.exit(1)
-			if subprocess.call(["install_name_tool", "-add_rpath", "@loader_path/../../../Frameworks", target]) != 0:
-				print(f"Failed to add framework rpath to {target}")
-				sys.exit(1)
+			run_checked(["install_name_tool", "-delete_rpath", "@loader_path/Qt/lib", target], f"Failed to remove rpath from {target}")
+			run_checked(["install_name_tool", "-add_rpath", "@loader_path/../../../Frameworks", target], f"Failed to add framework rpath to {target}")
 
 		for f in glob.glob(os.path.join(pyside_install_path, "site-packages", "PySide6", "*.dylib")):
 			target = os.path.join(bundle_path, "PySide6", os.path.basename(f))
 			shutil.copy(f, target)
-			if subprocess.call(["install_name_tool", "-delete_rpath", "@loader_path/Qt/lib", target]) != 0:
-				print(f"Failed to remove rpath from {target}")
-				sys.exit(1)
-
-			if subprocess.call(["install_name_tool", "-add_rpath", "@loader_path/../../../Frameworks", target]) != 0:
-				print(f"Failed to add framework rpath to {target}")
-				sys.exit(1)
+			run_checked(["install_name_tool", "-delete_rpath", "@loader_path/Qt/lib", target], f"Failed to remove rpath from {target}")
+			run_checked(["install_name_tool", "-add_rpath", "@loader_path/../../../Frameworks", target], f"Failed to add framework rpath to {target}")
 elif sys.platform == 'linux':
-	plugin_types = ["platforms", "imageformats", "wayland-decoration-client", "wayland-graphics-integration-client",
-		"wayland-shell-integration", "platforminputcontexts"]
 	os.mkdir(bundle_path)
-	for plugin_type in plugin_types:
+	for plugin_type in LINUX_PLUGIN_TYPES:
 		os.mkdir(os.path.join(bundle_path, plugin_type))
 	if args.pyside:
 		os.mkdir(os.path.join(bundle_path, "PySide6"))
 
-	for plugin_type in plugin_types:
+	for plugin_type in LINUX_PLUGIN_TYPES:
 		for f in glob.glob(os.path.join(install_path, "plugins", plugin_type, "*.so")):
 			target = os.path.join(bundle_path, plugin_type, os.path.basename(f))
 			shutil.copy(f, target)
-			if subprocess.call(["patchelf", "--set-rpath", "$ORIGIN/../..", target]) != 0:
-				print(f"ERROR: Failed to change rpath in {target}")
-				sys.exit(1)
+			run_checked(["patchelf", "--set-rpath", "$ORIGIN/../..", target], f"ERROR: Failed to change rpath in {target}")
 
 	if args.pyside:
 		qt_major_minor_version = ".".join(qt_version.split(".")[0:2])
 		for f in glob.glob(os.path.join(pyside_install_path, "site-packages", "PySide6", "*.abi3.so")):
 			target = os.path.join(bundle_path, "PySide6", os.path.basename(f))
 			shutil.copy(f, target)
-			if subprocess.call(["patchelf", "--set-rpath", "$ORIGIN:$ORIGIN/../shiboken6:$ORIGIN/../..", target]) != 0:
-				print(f"Failed to change rpath in {target}")
-				sys.exit(1)
+			run_checked(["patchelf", "--set-rpath", "$ORIGIN:$ORIGIN/../shiboken6:$ORIGIN/../..", target], f"Failed to change rpath in {target}")
 
 		pyside_module = f"libpyside6.abi3.so.{qt_major_minor_version}"
 		target = os.path.join(bundle_path, "PySide6", pyside_module)
 		shutil.copy(os.path.join(pyside_install_path, "site-packages", "PySide6", pyside_module), target)
-		if subprocess.call(["patchelf", "--set-rpath" ,"$ORIGIN:$ORIGIN/../shiboken6:$ORIGIN/../..", target]) != 0:
-			print("Failed to change rpath in libpyside")
-			sys.exit(1)
+		run_checked(["patchelf", "--set-rpath" ,"$ORIGIN:$ORIGIN/../shiboken6:$ORIGIN/../..", target], "Failed to change rpath in libpyside")
 
 
 if args.sign:
@@ -1095,35 +1056,35 @@ step("package artifacts")
 print("\nCreating archive...")
 with zipfile.ZipFile(artifact_path / qt_artifact_name, 'w', zipfile.ZIP_DEFLATED) as z:
 	for root, dirs, files in os.walk(install_path):
-		relpath = root.replace(str(install_path), "")
-		relpath = relpath.strip('\/')
+		relpath = Path(root).resolve().relative_to(install_path.resolve())
+		relpath_parts = [] if relpath == Path('.') else [str(relpath)]
 		for dir in dirs:
-			file_path = os.path.join(root, dir)
-			arc_name = os.path.join(qt_archive_root, relpath, dir)
-			if os.path.islink(file_path):
+			file_path = Path(root) / dir
+			arc_name = os.path.join(qt_archive_root, *relpath_parts, dir)
+			if file_path.is_symlink():
 				info = zipfile.ZipInfo(arc_name, datetime.datetime.now().timetuple())
 				info.compress_type = zipfile.ZIP_DEFLATED
-				info.external_attr = 0o120755 << 16
+				info.external_attr = ZIP_SYMLINK_ATTR
 				z.writestr(info, os.readlink(file_path))
 		for file in files:
 			if not should_package_file(file):
 				continue
 			print(f"Adding {relpath}/{file}...")
-			file_path = os.path.join(root, file)
-			arc_name = os.path.join(qt_archive_root, relpath, file)
+			file_path = Path(root) / file
+			arc_name = os.path.join(qt_archive_root, *relpath_parts, file)
 			info = zipfile.ZipInfo(arc_name, datetime.datetime.now().timetuple())
 			info.compress_type = zipfile.ZIP_DEFLATED
 
-			if os.path.islink(file_path):
-				info.external_attr = 0o120755 << 16
+			if file_path.is_symlink():
+				info.external_attr = ZIP_SYMLINK_ATTR
 				z.writestr(info, os.readlink(file_path))
 			else:
 				if os.access(file_path, os.X_OK):
-					info.external_attr = 0o755 << 16 # -rwxr-xr-x
+					info.external_attr = ZIP_EXECUTABLE_ATTR
 				else:
-					info.external_attr = 0o644 << 16 # -rwxr--r--
+					info.external_attr = ZIP_REGULAR_FILE_ATTR
 
-				with open(file_path, 'rb') as f:
+				with file_path.open('rb') as f:
 					z.writestr(info, f.read())
 
 
