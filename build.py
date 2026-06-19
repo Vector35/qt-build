@@ -37,6 +37,12 @@ LINUX_PLUGIN_TYPES = (
 	"platforms", "imageformats", "wayland-decoration-client", "wayland-graphics-integration-client",
 	"wayland-shell-integration", "platforminputcontexts"
 )
+BASE_BUILD_OPTS = [
+    "-no-static", "-release", "-opensource", "-confirm-license", "-nomake", "examples",
+	"-nomake", "tests", "-no-feature-tuiotouch", "-qt-libpng", "-qt-libjpeg", "-qt-libb2", "-no-glib",
+	"-qt-tiff", "-qt-webp", "-qt-pcre", "-no-feature-zstd", "-no-feature-brotli", "-no-feature-graphicseffect",
+	"-no-feature-style-windowsvista", "-no-feature-style-windows11"
+]
 
 
 def step(name):
@@ -49,13 +55,20 @@ def run_checked(cmd, error_message, cwd=None, shell=False):
 		sys.exit(1)
 
 
-BASE_BUILD_OPTS = ["-no-static", "-release", "-opensource", "-confirm-license", "-nomake", "examples",
-	"-nomake", "tests", "-no-feature-tuiotouch", "-qt-libpng", "-qt-libjpeg", "-qt-libb2", "-no-glib",
-	"-qt-tiff", "-qt-webp", "-qt-pcre", "-no-feature-zstd", "-no-feature-brotli", "-no-feature-graphicseffect",
-	"-no-feature-style-windowsvista", "-no-feature-style-windows11"]
+def run_checked_with_retries(cmd, error_message, cwd=None, retry_limit=BUILD_RETRY_LIMIT):
+    # Build is sometimes unreliable but continues without issue, try up to 5 times
+	retry_count = 0
+	while True:
+		if subprocess.call(cmd, cwd=cwd) != 0:
+			retry_count += 1
+			if retry_count > retry_limit:
+				print(error_message)
+				sys.exit(1)
+		else:
+			break
+
 
 build_opts = list(BASE_BUILD_OPTS)
-
 if sys.platform == 'linux':
 	build_opts += ["-xcb", "-xcb-xlib"]
 
@@ -234,9 +247,10 @@ parser.add_argument("--no-install", dest='install', action='store_false', defaul
 parser.add_argument("--install", dest='install', action='store_true', help="Install build products to your home folder")
 parser.add_argument("--no-pyside", dest='pyside', action='store_false', default=True, help="Don't build PySide")
 parser.add_argument("--patch", help="patch the source before building")
-parser.add_argument("--asan", help="build with ASAN", action="store_true")
-parser.add_argument("--tsan", help="build with TSAN", action="store_true")
-parser.add_argument("--debug", help="build a debug configuration", action="store_true")
+variant_group = parser.add_mutually_exclusive_group()
+variant_group.add_argument("--asan", help="build with ASAN", action="store_true")
+variant_group.add_argument("--tsan", help="build with TSAN", action="store_true")
+variant_group.add_argument("--debug", help="build a debug configuration", action="store_true")
 parser.add_argument("--universal", help="build for both x86_64 and arm64 (arm64 Mac host only)", action="store_true")
 parser.add_argument("--mirror", help="use source mirror", action="store")
 parser.add_argument("--sign", dest='sign', help="sign all executables", action="store_true", default=None)
@@ -631,16 +645,7 @@ if sys.platform == 'darwin':
 
 		step("build")
 		print("\nBuilding Qt for x86_64...")
-		# Build is unreliable but continues without issue, so try up to 5 times
-		retry_count = 0
-		while True:
-			if subprocess.call([make_cmd] + parallel, cwd=build_path / "x86_64") != 0:
-				retry_count += 1
-				if retry_count > BUILD_RETRY_LIMIT:
-					print("Qt failed to build")
-					sys.exit(1)
-			else:
-				break
+		run_checked_with_retries([make_cmd] + parallel, "Qt failed to build", cwd=build_path / "x86_64")
 
 		step("install/stage")
 		print("\nInstalling Qt for x86_64...")
@@ -656,16 +661,7 @@ if sys.platform == 'darwin':
 
 		step("build")
 		print("\nBuilding Qt for ARM64...")
-		# Build is unreliable but continues without issue, so try up to 5 times
-		retry_count = 0
-		while True:
-			if subprocess.call([make_cmd] + parallel, cwd=build_path / "arm64") != 0:
-				retry_count += 1
-				if retry_count > BUILD_RETRY_LIMIT:
-					print("Qt failed to build")
-					sys.exit(1)
-			else:
-				break
+		run_checked_with_retries([make_cmd] + parallel, "Qt failed to build", cwd=build_path / "arm64")
 
 		step("install/stage")
 		print("\nInstalling Qt for ARM64...")
@@ -742,16 +738,7 @@ else:
 
 	step("build")
 	print("\nBuilding Qt...")
-	# Build is unreliable but continues without issue, so try up to 5 times
-	retry_count = 0
-	while True:
-		if subprocess.call([make_cmd] + parallel, cwd=build_path) != 0:
-			retry_count += 1
-			if retry_count > BUILD_RETRY_LIMIT:
-				print("Qt failed to build")
-				sys.exit(1)
-		else:
-			break
+	run_checked_with_retries([make_cmd] + parallel, "Qt failed to build", cwd=build_path)
 
 	step("install/stage")
 	print("\nInstalling Qt...")
