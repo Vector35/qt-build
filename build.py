@@ -994,10 +994,10 @@ elif sys.platform == 'linux':
 			shutil.copy(f, target)
 			run_checked(["patchelf", "--set-rpath", "$ORIGIN:$ORIGIN/../shiboken6:$ORIGIN/../..", target], f"Failed to change rpath in {target}")
 
-		pyside_module = f"libpyside6.abi3.so.{qt_major_minor_version}"
-		target = os.path.join(bundle_path, "PySide6", pyside_module)
-		shutil.copy(os.path.join(pyside_install_path, "site-packages", "PySide6", pyside_module), target)
-		run_checked(["patchelf", "--set-rpath" ,"$ORIGIN:$ORIGIN/../shiboken6:$ORIGIN/../..", target], "Failed to change rpath in libpyside")
+		for f in glob.glob(os.path.join(pyside_install_path, "site-packages", "PySide6", f"libpyside6*.so.{qt_major_minor_version}")):
+			target = os.path.join(bundle_path, "PySide6", os.path.basename(f))
+			shutil.copy(f, target)
+			run_checked(["patchelf", "--set-rpath", "$ORIGIN:$ORIGIN/../shiboken6:$ORIGIN/../..", target], f"Failed to change rpath in {target}")
 
 
 if args.sign:
