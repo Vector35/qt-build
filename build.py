@@ -530,7 +530,10 @@ if args.clean:
 	for f in artifact_path.glob('*'):
 		if f.name == 'build-metadata.json':
 			continue
-		f.unlink()
+		if f.is_dir() and not f.is_symlink():
+			remove_dir(f)
+		else:
+			f.unlink()
 
 	if build_path.exists():
 		remove_dir(build_path)
