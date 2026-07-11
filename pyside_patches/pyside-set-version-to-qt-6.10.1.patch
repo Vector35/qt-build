@@ -1,0 +1,22 @@
+diff --git a/sources/pyside6/.cmake.conf b/sources/pyside6/.cmake.conf
+index 07bf8e43c..dc5908c3d 100644
+--- a/sources/pyside6/.cmake.conf
++++ b/sources/pyside6/.cmake.conf
+@@ -1,5 +1,5 @@
+ set(pyside_MAJOR_VERSION "6")
+-set(pyside_MINOR_VERSION "11")
++set(pyside_MINOR_VERSION "10")
+ set(pyside_MICRO_VERSION "1")
+ set(pyside_PRE_RELEASE_VERSION_TYPE "")
+ set(pyside_PRE_RELEASE_VERSION "")
+diff --git a/sources/shiboken6/.cmake.conf b/sources/shiboken6/.cmake.conf
+index 1accbc6d9..953d80dfd 100644
+--- a/sources/shiboken6/.cmake.conf
++++ b/sources/shiboken6/.cmake.conf
+@@ -1,5 +1,5 @@
+ set(shiboken_MAJOR_VERSION "6")
+-set(shiboken_MINOR_VERSION "11")
++set(shiboken_MINOR_VERSION "10")
+ set(shiboken_MICRO_VERSION "1")
+ set(shiboken_PRE_RELEASE_VERSION_TYPE "")
+ set(shiboken_PRE_RELEASE_VERSION "")

@@ -1,14 +1,14 @@
-diff --git a/sources/shiboken6/ApiExtractor/clangparser/clangbuilder.cpp b/sources/shiboken6/ApiExtractor/clangparser/clangbuilder.cpp
-index cc2924287..113ef8a84 100644
---- a/sources/shiboken6/ApiExtractor/clangparser/clangbuilder.cpp
-+++ b/sources/shiboken6/ApiExtractor/clangparser/clangbuilder.cpp
-@@ -647,7 +647,8 @@ void BuilderPrivate::addTypeDef(const CXCursor &cursor, const CXType &cxType)
-     item->setType(createTypeInfo(cxType));
+diff --git a/sources/shiboken6_generator/ApiExtractor/clangparser/clangbuilder.cpp b/sources/shiboken6_generator/ApiExtractor/clangparser/clangbuilder.cpp
+index 28eb1a582..e62436bbe 100644
+--- a/sources/shiboken6_generator/ApiExtractor/clangparser/clangbuilder.cpp
++++ b/sources/shiboken6_generator/ApiExtractor/clangparser/clangbuilder.cpp
+@@ -690,7 +690,8 @@ void BuilderPrivate::addTypeDef(const CXCursor &cursor, const CXType &cxType)
+     item->setType(typeInfoO.value());
      item->setScope(m_scope);
      item->setAccessPolicy(accessPolicy(clang_getCXXAccessSpecifier(cursor)));
 -    m_scopeStack.back()->addTypeDef(item);
-+	if (qualifiedName(target) != item->type().qualifiedName())
-+		m_scopeStack.back()->addTypeDef(item);
++    if (target.split("::"_L1) != item->type().qualifiedName())
++        m_scopeStack.back()->addTypeDef(item);
  }
- 
+
  ClassModelItem BuilderPrivate::currentTemplateClass() const
