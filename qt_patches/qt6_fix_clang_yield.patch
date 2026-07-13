@@ -2,13 +2,20 @@ diff --git a/qtbase/src/corelib/thread/qyieldcpu.h b/qtbase/src/corelib/thread/q
 index 66156487d66..ad0bf205c18 100644
 --- a/qtbase/src/corelib/thread/qyieldcpu.h
 +++ b/qtbase/src/corelib/thread/qyieldcpu.h
-@@ -20,6 +20,11 @@ extern "C"
+@@ -20,6 +20,18 @@ extern "C"
  void _mm_pause(void);       // the compiler recognizes as intrinsic
  #endif
  
-+#if defined(Q_CC_CLANG) && (__clang_major__ >= 21) && (defined(Q_PROCESSOR_ARM) || defined(Q_PROCESSOR_ARM_64))
-+// Clang defines __yield() in <arm_acle.h>
-+#  include <arm_acle.h>
++#if __has_builtin(__yield)
++// Clang 21 and up recognize __yield() as a builtin but still require a
++// declaration, normally supplied by <arm_acle.h>. Declare it directly rather
++// than including that header. Shiboken parses with a newer Clang than the
++// system compiler whose headers it picks up, and <arm_acle.h> fails to parse
++// under that mismatch.
++#  ifdef __cplusplus
++extern "C"
++#  endif
++void __yield(void);
 +#endif
 +
  QT_BEGIN_NAMESPACE

@@ -1,7 +1,7 @@
-diff --git a/sources/shiboken6/ApiExtractor/abstractmetafunction.cpp b/sources/shiboken6/ApiExtractor/abstractmetafunction.cpp
+diff --git a/sources/shiboken6_generator/ApiExtractor/abstractmetafunction.cpp b/sources/shiboken6_generator/ApiExtractor/abstractmetafunction.cpp
 index 5198d69a4..f02d734d6 100644
---- a/sources/shiboken6/ApiExtractor/abstractmetafunction.cpp
-+++ b/sources/shiboken6/ApiExtractor/abstractmetafunction.cpp
+--- a/sources/shiboken6_generator/ApiExtractor/abstractmetafunction.cpp
++++ b/sources/shiboken6_generator/ApiExtractor/abstractmetafunction.cpp
 @@ -878,12 +878,8 @@ bool AbstractMetaFunction::allowThread() const
          result = false;
          break;

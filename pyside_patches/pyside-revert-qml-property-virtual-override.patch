@@ -1,0 +1,143 @@
+diff --git a/sources/pyside6/doc/extras/QtCore.Property.rst b/sources/pyside6/doc/extras/QtCore.Property.rst
+index a9b2ed2a19..db72b61e02 100644
+--- a/sources/pyside6/doc/extras/QtCore.Property.rst
++++ b/sources/pyside6/doc/extras/QtCore.Property.rst
+@@ -53,14 +53,10 @@
+                  scriptable: bool = True,
+                  stored: bool = True, user: bool = False,
+                  constant: bool = False,
+-                 final: bool = False,
+-                 virtual: bool = False,
+-                 override: bool = False) -> PySide6.QtCore.Property
++                 final: bool = False) -> PySide6.QtCore.Property
+ 
+     Normally, only ``type``, ``fget``and ``fset`` are used.
+ 
+-    The ``final``, ``virtual`` and ``override`` are relevant for use
+-    in QML, see `Property Shadowing and Override Semantics`_.
+ 
+     Properties compared with Python properties
+     ------------------------------------------
+@@ -138,4 +134,3 @@
+ 
+ .. _`Python Docs`:  https://docs.python.org/3/library/functions.html?highlight=property#property
+ .. _`Qt Docs`:  https://doc.qt.io/qt-6/properties.html
+-.. _`Property Shadowing and Override Semantics`: https://doc-snapshots.qt.io/qt6-dev/qtqml-syntax-overridesemantics.html
+diff --git a/sources/pyside6/libpyside/dynamicqmetaobject.cpp b/sources/pyside6/libpyside/dynamicqmetaobject.cpp
+index 424434d538..3d7462811b 100644
+--- a/sources/pyside6/libpyside/dynamicqmetaobject.cpp
++++ b/sources/pyside6/libpyside/dynamicqmetaobject.cpp
+@@ -350,8 +350,6 @@
+     newProperty.setUser(flags.testFlag(PySide::Property::PropertyFlag::User));
+     newProperty.setConstant(flags.testFlag(PySide::Property::PropertyFlag::Constant));
+     newProperty.setFinal(flags.testFlag(PySide::Property::PropertyFlag::Final));
+-    newProperty.setVirtual(flags.testFlag(PySide::Property::PropertyFlag::Virtual));
+-    newProperty.setOverride(flags.testFlag(PySide::Property::PropertyFlag::Override));
+ 
+     index = newProperty.index() + m_baseObject->propertyCount();
+     m_dirty = true;
+diff --git a/sources/pyside6/libpyside/pysideproperty.cpp b/sources/pyside6/libpyside/pysideproperty.cpp
+index 82366c2df1..0f59ed9662 100644
+--- a/sources/pyside6/libpyside/pysideproperty.cpp
++++ b/sources/pyside6/libpyside/pysideproperty.cpp
+@@ -325,26 +325,22 @@
+ 
+     static const char *kwlist[] = {"type", "fget", "fset", "freset", "fdel", "doc", "notify",
+                                    "designable", "scriptable", "stored",
+-                                   "user", "constant",
+-                                   "final", "virtual", "override",
+-                                   dataCapsuleKeyName, nullptr};
++                                   "user", "constant", "final", dataCapsuleKeyName, nullptr};
+     char *doc{};
+     PyObject *type{}, *fget{}, *fset{}, *freset{}, *fdel{}, *notify{};
+     PyObject *dataCapsule{};
+     bool designable{true}, scriptable{true}, stored{true};
+-    bool user{false}, constant{false};
+-    bool finalProp{false}, overrideProp{false}, virtualProp{false};
++    bool user{false}, constant{false}, finalProp{false};
+ 
+     if (!PyArg_ParseTupleAndKeywords(args, kwds,
+-                                     "O|OOOOsObbbbbbbbO:QtCore.Property",
++                                     "O|OOOOsObbbbbbO:QtCore.Property",
+                                      const_cast<char **>(kwlist),
+                                      /*OO*/     &type, &fget,
+                                      /*OOO*/    &fset, &freset, &fdel,
+                                      /*s*/      &doc,
+                                      /*O*/      &notify,
+                                      /*bbb*/    &designable, &scriptable, &stored,
+-                                     /*bb*/     &user, &constant,
+-                                     /*bbb*/    &finalProp, &virtualProp, &overrideProp,
++                                     /*bbb*/    &user, &constant, &finalProp,
+                                      /*O*/      &dataCapsule)) {
+         return -1;
+     }
+@@ -380,8 +376,6 @@
+     flags.setFlag(PySide::Property::PropertyFlag::User, user);
+     flags.setFlag(PySide::Property::PropertyFlag::Constant, constant);
+     flags.setFlag(PySide::Property::PropertyFlag::Final, finalProp);
+-    flags.setFlag(PySide::Property::PropertyFlag::Virtual, virtualProp);
+-    flags.setFlag(PySide::Property::PropertyFlag::Override, overrideProp);
+     pData->setFlags(flags);
+ 
+     if (type == Py_None || pData->typeName().isEmpty())
+diff --git a/sources/pyside6/libpyside/pysidepropertybase_p.h b/sources/pyside6/libpyside/pysidepropertybase_p.h
+index d8ad4091f3..2459481b8a 100644
+--- a/sources/pyside6/libpyside/pysidepropertybase_p.h
++++ b/sources/pyside6/libpyside/pysidepropertybase_p.h
+@@ -27,9 +27,7 @@
+     Stored      = 0x020,
+     User        = 0x040,
+     Constant    = 0x080,
+-    Final       = 0x100,
+-    Virtual     = 0x200,
+-    Override    = 0x400
++    Final       = 0x100
+ };
+ Q_DECLARE_FLAGS(PropertyFlags, PropertyFlag)
+ 
+diff --git a/sources/pyside6/libpysideqml/pysideqmllistproperty.cpp b/sources/pyside6/libpysideqml/pysideqmllistproperty.cpp
+index 961d8f53e1..e9ca029116 100644
+--- a/sources/pyside6/libpysideqml/pysideqmllistproperty.cpp
++++ b/sources/pyside6/libpysideqml/pysideqmllistproperty.cpp
+@@ -119,8 +119,7 @@
+                                    "replace", "removeLast",
+                                    "doc", "notify", // PySideProperty
+                                    "designable", "scriptable", "stored",
+-                                   "user", "constant",
+-                                   "final", "virtual", "override",
++                                   "user", "constant", "final",
+                                    nullptr};
+     auto *pySelf = reinterpret_cast<PySideProperty *>(self);
+ 
+@@ -129,19 +128,17 @@
+     char *doc{};
+     PyObject *append{}, *count{}, *at{}, *clear{}, *replace{}, *removeLast{}, *notify{};
+     bool designable{true}, scriptable{true}, stored{true};
+-    bool user{false}, constant{false};
+-    bool finalProp{false}, overrideProp{false}, virtualProp{false};
++    bool user{false}, constant{false}, finalProp{false};
+ 
+     if (!PyArg_ParseTupleAndKeywords(args, kwds,
+-                                     "O|OOOOOOsObbbbbbbb:QtQml.ListProperty",
++                                     "O|OOOOOOsObbbbbb:QtQml.ListProperty",
+                                      const_cast<char **>(kwlist),
+                                      &data->obElementType,
+                                      &append, &count, &at, &clear, &replace, &removeLast,
+                                      /*s*/   &doc,
+                                      /*O*/   &notify, // PySideProperty
+                                      /*bbb*/ &designable, &scriptable, &stored,
+-                                     /*bb*/  &user, &constant,
+-                                     /*bbb*/ &finalProp, &virtualProp, &overrideProp)) {
++                                     /*bbb*/ &user, &constant, &finalProp)) {
+         return -1;
+     }
+ 
+@@ -185,8 +182,6 @@
+     flags.setFlag(PySide::Property::PropertyFlag::User, user);
+     flags.setFlag(PySide::Property::PropertyFlag::Constant, constant);
+     flags.setFlag(PySide::Property::PropertyFlag::Final, finalProp);
+-    flags.setFlag(PySide::Property::PropertyFlag::Virtual, virtualProp);
+-    flags.setFlag(PySide::Property::PropertyFlag::Override, overrideProp);
+     data->setFlags(flags);
+ 
+     data->incref();

@@ -1,0 +1,91 @@
+diff --git a/sources/pyside6/PySide6/QtCore/CMakeLists.txt b/sources/pyside6/PySide6/QtCore/CMakeLists.txt
+index 997b0fe..2f49b61 100644
+--- a/sources/pyside6/PySide6/QtCore/CMakeLists.txt
++++ b/sources/pyside6/PySide6/QtCore/CMakeLists.txt
+@@ -32,7 +32,6 @@ ${QtCore_GEN_DIR}/qabstractproxymodel_wrapper.cpp
+ ${QtCore_GEN_DIR}/qabstracttablemodel_wrapper.cpp
+ ${QtCore_GEN_DIR}/qanimationgroup_wrapper.cpp
+ ${QtCore_GEN_DIR}/qbasicmutex_wrapper.cpp
+-${QtCore_GEN_DIR}/qbasicreadwritelock_wrapper.cpp
+ ${QtCore_GEN_DIR}/qbasictimer_wrapper.cpp
+ ${QtCore_GEN_DIR}/qbitarray_wrapper.cpp
+ ${QtCore_GEN_DIR}/qbuffer_wrapper.cpp
+diff --git a/sources/pyside6/PySide6/QtCore/typesystem_core_common.xml b/sources/pyside6/PySide6/QtCore/typesystem_core_common.xml
+index 06a1d07..bd386a0 100644
+--- a/sources/pyside6/PySide6/QtCore/typesystem_core_common.xml
++++ b/sources/pyside6/PySide6/QtCore/typesystem_core_common.xml
+@@ -1618,10 +1618,6 @@
+   </object-type>
+   <value-type name="QStorageInfo"/>
+   <!-- QReadWriteLock does not have a copy ctor! -->
+-  <object-type name="QBasicReadWriteLock" since="6.11">
+-    <modify-function signature="lockForRead()" allow-thread="yes"/>
+-    <modify-function signature="lockForWrite()" allow-thread="yes"/>
+-  </object-type>
+   <object-type name="QReadWriteLock">
+     <enum-type name="RecursionMode"/>
+     <modify-function signature="tryLockForRead(int)" allow-thread="yes"/>
+diff --git a/sources/pyside6/PySide6/QtGui/CMakeLists.txt b/sources/pyside6/PySide6/QtGui/CMakeLists.txt
+index 778b1d6..b9e8429 100644
+--- a/sources/pyside6/PySide6/QtGui/CMakeLists.txt
++++ b/sources/pyside6/PySide6/QtGui/CMakeLists.txt
+@@ -213,7 +213,6 @@ ${QtGui_GEN_DIR}/qpolygon_wrapper.cpp
+ ${QtGui_GEN_DIR}/qpolygonf_wrapper.cpp
+ ${QtGui_GEN_DIR}/qpytextobject_wrapper.cpp
+ ${QtGui_GEN_DIR}/qquaternion_wrapper.cpp
+-${QtGui_GEN_DIR}/qquaternion_axes_wrapper.cpp
+ ${QtGui_GEN_DIR}/qradialgradient_wrapper.cpp
+ ${QtGui_GEN_DIR}/qregularexpressionvalidator_wrapper.cpp
+ ${QtGui_GEN_DIR}/qrgba64_wrapper.cpp
+diff --git a/sources/pyside6/PySide6/QtGui/typesystem_gui_common.xml b/sources/pyside6/PySide6/QtGui/typesystem_gui_common.xml
+index e4f7539..a93536a 100644
+--- a/sources/pyside6/PySide6/QtGui/typesystem_gui_common.xml
++++ b/sources/pyside6/PySide6/QtGui/typesystem_gui_common.xml
+@@ -2619,7 +2619,6 @@
+     _______ end of matrix block _______ -->
+ 
+   <value-type name="QQuaternion">
+-    <value-type name="Axes" since="6.11"/>
+     <add-function signature="__repr__" return-type="str">
+         <inject-code class="target" position="beginning">
+             <insert-template name="repr_code">
+diff --git a/sources/pyside6/PySide6/QtWidgets/CMakeLists.txt b/sources/pyside6/PySide6/QtWidgets/CMakeLists.txt
+index 1c78a7e..f1e310c 100644
+--- a/sources/pyside6/PySide6/QtWidgets/CMakeLists.txt
++++ b/sources/pyside6/PySide6/QtWidgets/CMakeLists.txt
+@@ -146,9 +146,7 @@ ${QtWidgets_GEN_DIR}/qstyleoptiongroupbox_wrapper.cpp
+ ${QtWidgets_GEN_DIR}/qstyleoptionheader_wrapper.cpp
+ ${QtWidgets_GEN_DIR}/qstyleoptionheaderv2_wrapper.cpp
+ ${QtWidgets_GEN_DIR}/qstyleoptionmenuitem_wrapper.cpp
+-${QtWidgets_GEN_DIR}/qstyleoptionmenuitemv2_wrapper.cpp
+ ${QtWidgets_GEN_DIR}/qstyleoptionprogressbar_wrapper.cpp
+-${QtWidgets_GEN_DIR}/qstyleoptionrubberband_wrapper.cpp
+ ${QtWidgets_GEN_DIR}/qstyleoptionsizegrip_wrapper.cpp
+ ${QtWidgets_GEN_DIR}/qstyleoptionslider_wrapper.cpp
+ ${QtWidgets_GEN_DIR}/qstyleoptionspinbox_wrapper.cpp
+diff --git a/sources/pyside6/PySide6/QtWidgets/typesystem_widgets_common.xml b/sources/pyside6/PySide6/QtWidgets/typesystem_widgets_common.xml
+index 961de03..f046ad8 100644
+--- a/sources/pyside6/PySide6/QtWidgets/typesystem_widgets_common.xml
++++ b/sources/pyside6/PySide6/QtWidgets/typesystem_widgets_common.xml
+@@ -118,21 +118,11 @@
+       <enum-type name="StyleOptionType"/>
+       <enum-type name="StyleOptionVersion"/>
+   </object-type>
+-  <object-type name="QStyleOptionMenuItemV2"
+-               polymorphic-id-expression="qstyleoption_cast&lt;const QStyleOptionMenuItemV2 *&gt;(%B) != nullptr"
+-               since="6.11">
+-      <enum-type name="StyleOptionVersion"/>
+-  </object-type>
+   <object-type name="QStyleOptionProgressBar"
+                polymorphic-id-expression="qstyleoption_cast&lt;const QStyleOptionProgressBar *&gt;(%B) != nullptr">
+       <enum-type name="StyleOptionType"/>
+       <enum-type name="StyleOptionVersion"/>
+   </object-type>
+-  <object-type name="QStyleOptionRubberBand"
+-               polymorphic-id-expression="qstyleoption_cast&lt;const QStyleOptionRubberBand *&gt;(%B) != nullptr">
+-      <enum-type name="StyleOptionType"/>
+-      <enum-type name="StyleOptionVersion"/>
+-  </object-type>
+   <object-type name="QStyleOptionSlider"
+                polymorphic-id-expression="qstyleoption_cast&lt;const QStyleOptionSlider *&gt;(%B) != nullptr">
+       <enum-type name="StyleOptionType"/>

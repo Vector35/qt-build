@@ -1,7 +1,7 @@
-diff --git a/sources/shiboken6/ApiExtractor/abstractmetabuilder.cpp b/sources/shiboken6/ApiExtractor/abstractmetabuilder.cpp
+diff --git a/sources/shiboken6_generator/ApiExtractor/abstractmetabuilder.cpp b/sources/shiboken6_generator/ApiExtractor/abstractmetabuilder.cpp
 index d02741d06..c9c084cd2 100644
---- a/sources/shiboken6/ApiExtractor/abstractmetabuilder.cpp
-+++ b/sources/shiboken6/ApiExtractor/abstractmetabuilder.cpp
+--- a/sources/shiboken6_generator/ApiExtractor/abstractmetabuilder.cpp
++++ b/sources/shiboken6_generator/ApiExtractor/abstractmetabuilder.cpp
 @@ -890,7 +890,7 @@ std::optional<AbstractMetaEnum>
  
      if (!typeEntry->isEnum()) {

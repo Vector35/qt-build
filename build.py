@@ -14,7 +14,7 @@ from math import ceil
 from pathlib import Path
 
 from build_metadata import emit_build_metadata
-from target_qt6_version import qt_version, llvm_version, msvc_build, msvc_dir_name, vs_version, min_macos, qt_modules, pyside_modules
+from target_qt6_version import qt_version, pyside_version, llvm_version, msvc_build, msvc_dir_name, vs_version, min_macos, qt_modules, pyside_modules
 
 
 MAKE_CMD = "ninja"
@@ -619,10 +619,10 @@ if not args.no_clone:
 		else:
 			print("\nCloning pyside-setup...")
 			if args.mirror:
-				run_checked(["git", "clone", "-b", qt_version, "--depth", "1",
+				run_checked(["git", "clone", "-b", pyside_version, "--depth", "1",
 					f"{args.mirror}pyside-setup", pyside_source_path], "Failed to clone PySide git repository")
 			else:
-				run_checked(["git", "clone", "-b", qt_version, "--depth", "1",
+				run_checked(["git", "clone", "-b", pyside_version, "--depth", "1",
 					PYSIDE_REPO_URL, pyside_source_path], "Failed to clone PySide git repository")
 
 			step("apply patches")
