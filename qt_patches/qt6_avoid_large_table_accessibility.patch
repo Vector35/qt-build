@@ -34,6 +34,15 @@ index c04a699a56c..16b6f0bef60 100644
  #include <qaccessible.h>
  #endif
  #if QT_CONFIG(gestures) && QT_CONFIG(scroller)
+@@ -172,7 +172,7 @@ void QAbstractItemViewPrivate::checkMouseMove(const QPersistentModelIndex &index
+     }
+ }
+
+-#if QT_CONFIG(accessibility)
++#if QT_CONFIG(accessibility) && !defined(Q_OS_MACOS)
+ void QAbstractItemViewPrivate::updateItemAccessibility(const QModelIndex &index,
+                                                        const QList<int> &roles)
+ {
 @@ -1131,7 +1131,7 @@ void QAbstractItemView::reset()
      setRootIndex(QModelIndex());
      if (d->selectionModel)
@@ -143,9 +152,9 @@ index a4cb4c76fbc..2b966578c45 100644
  {
 -#if QT_CONFIG(accessibility)
 +#if QT_CONFIG(accessibility) && !defined(Q_OS_MACOS)
+     Q_D(const QListView);
      if (QAccessible::isActive()) {
          // ### does not work properly for selection ranges.
-         QModelIndex sel = selected.indexes().value(0);
 diff --git a/qtbase/src/widgets/itemviews/qtableview.cpp b/qtbase/src/widgets/itemviews/qtableview.cpp
 index 9d6499de5b9..d4c4da32ab4 100644
 --- a/qtbase/src/widgets/itemviews/qtableview.cpp
