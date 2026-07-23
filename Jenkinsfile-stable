@@ -68,6 +68,21 @@ pipeline {
                             }
                         }
                     }
+                    stage("Upload Debug Symbols") {
+                        steps {
+                            withCredentials([string(credentialsId: 'sentry-auth-token', variable: 'SENTRY_AUTH_TOKEN')]) {
+                                withEnv(["MISE_TRUSTED_CONFIG_PATHS=${env.WORKSPACE}"]) {
+                                    script {
+                                        if (isUnix()) {
+                                            sh "mise upload-symbols"
+                                        } else {
+                                            bat "mise upload-symbols"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
