@@ -1,0 +1,13 @@
+diff --git a/qtbase/src/widgets/widgets/qtextedit.cpp b/qtbase/src/widgets/widgets/qtextedit.cpp
+index 122cecdbcf0..8b9fd9762ef 100644
+--- a/qtbase/src/widgets/widgets/qtextedit.cpp
++++ b/qtbase/src/widgets/widgets/qtextedit.cpp
+@@ -1619,7 +1619,7 @@ void QTextEditPrivate::paint(QPainter *p, QPaintEvent *e)
+         const QColor col = control->palette().placeholderText().color();
+         p->setPen(col);
+         const int margin = int(doc->documentMargin());
+-        QRectF boundingRect = layout ? layout->frameBoundingRect(doc->rootFrame()) : viewport->rect();
++        QRectF boundingRect = viewport->rect();
+         p->drawText(boundingRect.adjusted(margin, margin, -margin, -margin),
+                     Qt::AlignTop | Qt::TextWordWrap,
+                     placeholderText);
