@@ -71,6 +71,8 @@ def run_checked_with_retries(cmd, error_message, cwd=None, retry_limit=BUILD_RET
 build_opts = list(BASE_BUILD_OPTS)
 if sys.platform == 'linux':
 	build_opts += ["-xcb", "-xcb-xlib"]
+else:
+	build_opts += ["-no-feature-opengl", "-no-feature-dynamicgl"]
 
 
 def remove_dir(path):
@@ -300,6 +302,10 @@ if args.symbols:
 		debug_flag = "-g1"
 	extra_cmake_args += [f"-DCMAKE_C_FLAGS={debug_flag}",
 		f"-DCMAKE_CXX_FLAGS={debug_flag}"]
+
+if sys.platform == 'linux':
+	extra_cmake_args += ["-DOpenGL_GL_PREFERENCE=LEGACY"]
+
 configure_extra = ["--"] + extra_cmake_args if extra_cmake_args else []
 
 mirror = []
