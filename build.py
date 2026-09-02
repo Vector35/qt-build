@@ -300,6 +300,10 @@ if args.symbols:
 		debug_flag = "-g1"
 	extra_cmake_args += [f"-DCMAKE_C_FLAGS={debug_flag}",
 		f"-DCMAKE_CXX_FLAGS={debug_flag}"]
+
+if sys.platform == 'linux':
+	extra_cmake_args += ["-DOpenGL_GL_PREFERENCE=LEGACY"]
+
 configure_extra = ["--"] + extra_cmake_args if extra_cmake_args else []
 
 mirror = []
