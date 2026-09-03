@@ -1,0 +1,47 @@
+--- a/qtbase/src/plugins/platforms/wayland/qwaylanddnd.cpp
++++ b/qtbase/src/plugins/platforms/wayland/qwaylanddnd.cpp
+@@ -9,9 +9,12 @@
+ #include "qwaylanddataoffer_p.h"
+ #include "qwaylandinputdevice_p.h"
+ #include "qwaylanddisplay_p.h"
++#include "qwaylandshmbackingstore_p.h"
+ 
+ #include <QtGui/private/qshapedpixmapdndwindow_p.h>
+ 
++#include <QtGui/QPainter>
++
+ #include <QDebug>
+ 
+ QT_BEGIN_NAMESPACE
+@@ -38,6 +41,31 @@
+     QWaylandWindow *icon = static_cast<QWaylandWindow *>(shapedPixmapWindow()->handle());
+     if (m_display->currentInputDevice()->dataDevice()->startDrag(drag()->mimeData(), drag()->supportedActions(), icon)) {
+         icon->addAttachOffset(-drag()->hotSpot());
++
++        // The icon surface is only given the drag-and-drop role by the start_drag request above.
++        // Everything painted into it before that point was committed to a surface that did not
++        // have a role yet, and compositors are not required to keep that state: mutter discards
++        // it and displays nothing, while kwin keeps it. The attach offset that positions the icon
++        // relative to the hot spot is only applied by the next attach as well, and nothing else
++        // commits this surface for the rest of the drag. Commit the contents once more here, now
++        // that the surface has its role, so that the icon is shown and positioned correctly.
++        if (QWaylandShmBackingStore *backingStore = icon->backingStore()) {
++            QImage *contents = backingStore->entireSurface();
++            if (contents && !contents->isNull() && icon->isExposed()) {
++                // A buffer that has already been committed is not attached a second time, so the
++                // contents are copied into a new buffer, which deletes itself once the compositor
++                // has released it.
++                auto *buffer = new QWaylandShmBuffer(icon->display(), contents->size(),
++                                                     contents->format(),
++                                                     contents->devicePixelRatio());
++                buffer->setDeleteOnRelease(true);
++                QPainter painter(buffer->image());
++                painter.setCompositionMode(QPainter::CompositionMode_Source);
++                painter.drawImage(QPoint(0, 0), *contents);
++                painter.end();
++                icon->safeCommit(buffer, QRegion(QRect(QPoint(), icon->geometry().size())));
++            }
++        }
+     } else {
+         // Cancelling immediately does not work, since the event loop for QDrag::exec is started
+         // after this function returns.
