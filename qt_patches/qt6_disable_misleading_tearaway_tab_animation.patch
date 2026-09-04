@@ -1,0 +1,13 @@
+diff --git a/qtbase/src/plugins/platforms/cocoa/qcocoadrag.mm b/qtbase/src/plugins/platforms/cocoa/qcocoadrag.mm
+index 0f9df3f17ab..693d3783ea0 100644
+--- a/qtbase/src/plugins/platforms/cocoa/qcocoadrag.mm
++++ b/qtbase/src/plugins/platforms/cocoa/qcocoadrag.mm
+@@ -138,7 +138,7 @@
+         event:m_lastEvent
+         pasteboard:pboard
+         source:m_lastView
+-        slideBack:YES];
++        slideBack:NO];
+ 
+     m_drag = nullptr;
+     return m_executed_drop_action;
