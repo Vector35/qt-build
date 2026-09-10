@@ -1,0 +1,13 @@
+diff --git a/qtbase/src/corelib/configure.cmake b/qtbase/src/corelib/configure.cmake
+index 36a2fb7ecb6..fab0a5bd082 100644
+--- a/qtbase/src/corelib/configure.cmake
++++ b/qtbase/src/corelib/configure.cmake
+@@ -999,7 +999,7 @@ qt_feature_definition("threadsafe-cloexec" "QT_THREADSAFE_CLOEXEC" VALUE "1")
+ qt_feature_config("threadsafe-cloexec" QMAKE_PUBLIC_QT_CONFIG)
+ qt_feature("dup3" PRIVATE
+     LABEL "dup3 support"
+-    CONDITION TEST_dup3
++    CONDITION TEST_dup3 AND NOT APPLE
+ )
+ qt_feature("accept4" PRIVATE
+     LABEL "accept4 support"
