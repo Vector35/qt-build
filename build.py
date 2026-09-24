@@ -303,6 +303,8 @@ if args.symbols:
 
 if sys.platform == 'linux':
 	extra_cmake_args += ["-DOpenGL_GL_PREFERENCE=LEGACY"]
+elif sys.platform == 'darwin':
+	extra_cmake_args += [f"-DCMAKE_OSX_DEPLOYMENT_TARGET={min_macos}"]
 
 configure_extra = ["--"] + extra_cmake_args if extra_cmake_args else []
 
