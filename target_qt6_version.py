@@ -1,4 +1,4 @@
-qt_version = "6.11.1"
+qt_version = "6.11.2"
 llvm_version = "22.1.8"
 msvc_build = "14.34"
 msvc_dir_name = "msvc2022_64"
