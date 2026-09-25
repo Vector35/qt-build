@@ -3,6 +3,23 @@
     Stable builds come from the master branch.
 */
 
+def doCheckout() {
+    if (!env.BUILD_COMMIT) {
+        error('BUILD_COMMIT was not set by the controller checkout')
+    }
+
+    // Pin agent checkouts to the revision selected at the start of the build
+    checkoutWithRetry(false) {
+        scmGit(
+            branches: [[name: env.BUILD_COMMIT]],
+            extensions: [
+                cleanBeforeCheckout(deleteUntrackedNestedRepositories: true)
+            ],
+            userRemoteConfigs: scm.userRemoteConfigs
+        )
+    }
+}
+
 def jobFormatted = "`<${JOB_URL}|${JOB_NAME}> <${BUILD_URL}|#${BUILD_NUMBER}>`"
 def slackResponse = slackSend(message: "Thread for ${jobFormatted}")
 
@@ -11,6 +28,9 @@ pipeline {
         label "master"
     }
     options {
+        // Skip default checkout so worker checkouts do not poll for changes
+        skipDefaultCheckout()
+
         // Allow downstream jobs to copy artifacts
         copyArtifactPermission("*")
 
@@ -33,6 +53,14 @@ pipeline {
         PYTHONUNBUFFERED = "1"
     }
     stages {
+        stage("Checkout") {
+            steps {
+                script {
+                    def checkoutVars = checkoutWithRetry(true) { scm }
+                    env.BUILD_COMMIT = checkoutVars.GIT_COMMIT
+                }
+            }
+        }
         stage("Build Artifacts") {
             matrix {
                 axes {
@@ -48,6 +76,11 @@ pipeline {
                     }
                 }
                 stages {
+                    stage("Checkout") {
+                        steps {
+                            doCheckout()
+                        }
+                    }
                     stage("Build") {
                         steps {
                             copyArtifacts(
