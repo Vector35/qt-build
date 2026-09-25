@@ -1,5 +1,6 @@
 qt_version = "6.11.1"
 llvm_version = "22.1.8"
+icu_version = "release-68-2"
 msvc_build = "14.34"
 msvc_dir_name = "msvc2022_64"
 vs_version = "2022"

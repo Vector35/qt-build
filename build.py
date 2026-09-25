@@ -14,7 +14,7 @@ from math import ceil
 from pathlib import Path
 
 from build_metadata import emit_build_metadata
-from target_qt6_version import qt_version, llvm_version, msvc_build, msvc_dir_name, vs_version, min_macos, qt_modules, pyside_modules
+from target_qt6_version import qt_version, llvm_version, icu_version, msvc_build, msvc_dir_name, vs_version, min_macos, qt_modules, pyside_modules
 
 
 MAKE_CMD = "ninja"
@@ -23,7 +23,6 @@ DEFAULT_QT_MIRROR = "https://github.com/qt/"
 QT_REPO_URL = "https://github.com/qt/qt5.git"
 PYSIDE_REPO_URL = "https://codereview.qt-project.org/pyside/pyside-setup"
 ICU_REPO_URL = "https://github.com/unicode-org/icu.git"
-ICU_VERSION = "release-68-2"
 QLITEHTML_REPO_URL = "https://code.qt.io/playground/qlitehtml.git"
 WINDOWS_TIMESTAMP_SERVERS = ("http://timestamp.digicert.com", "http://timestamp.comodoca.com/rfc3161")
 BUILD_RETRY_LIMIT = 5
@@ -445,6 +444,7 @@ emit_build_metadata(
 	versions={
 		"qt_version": qt_version,
 		"llvm_version": llvm_version,
+		"icu_version": icu_version,
 		"msvc_build": msvc_build,
 		"msvc_dir_name": msvc_dir_name,
 		"vs_version": vs_version,
@@ -616,7 +616,7 @@ if not args.no_clone:
 			run_checked(["git", "clone", f"{args.mirror}icu.git", qt_source_path / "icu"], "Failed to clone Qt git repository")
 		else:
 			run_checked(["git", "clone", ICU_REPO_URL, qt_source_path / "icu"], "Failed to clone Qt git repository")
-		run_checked(["git", "checkout", ICU_VERSION], "Failed to check out branch '{}'".format(ICU_VERSION), cwd=qt_source_path / "icu")
+		run_checked(["git", "checkout", icu_version], "Failed to check out branch '{}'".format(icu_version), cwd=qt_source_path / "icu")
 
 	if args.pyside:
 		if args.pyside_source:
