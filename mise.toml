@@ -1,15 +1,18 @@
+min_version = "2026.7.4"
+
 [tools]
-python = "3.13"
-uv = "0.11.14"
+# After changing versions here, run `mise lock` to regenerate mise.lock.
+python = "3.12.13"
+uv = "0.11.29"
 cmake = "4.3.3"
 ninja = "1.13.2"
-sentry-cli = "3.6.1"
+sentry = "3.6.0"
 
 [tasks.build]
 description = "Build Qt artifacts"
 env = { PYTHONUNBUFFERED = "1" }
 run = [
-	"uv run --locked --python 3.13 python -u ./build.py",
+	"uv run --locked --python 3.12.13 python -u ./build.py",
 ]
 
 [tasks.upload-symbols]
@@ -18,3 +21,9 @@ env = { PYTHONUNBUFFERED = "1" }
 run = [
 	"python -u ./upload_symbols.py",
 ]
+
+[settings]
+lockfile = true
+locked = true
+lockfile_platforms = ["linux-x64", "linux-arm64", "macos-arm64", "windows-x64"]
+minimum_release_age = "7d"
