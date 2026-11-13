@@ -259,6 +259,7 @@ parser.add_argument("--pyside-source", help="use PySide source directory", actio
 parser.add_argument("--build-dir", dest="build_dir", help="Custom build directory to bypass windows PATH_MAX limits", action="store")
 parser.add_argument("--symbols", help="extract debug symbols into a separate archive and strip debug info from binaries", action="store_true", default=True)
 parser.add_argument("--no-symbols", dest="symbols", help="disable debug symbol extraction", action="store_false")
+parser.add_argument("--ccache", help="use ccache when building", action="store_true")
 
 if not sys.platform.startswith("win"):
 	parser.add_argument("-j", "--jobs", dest='jobs', default=None, help="Number of build threads (Defaults to 1.1*cpu_count)")
@@ -304,6 +305,9 @@ if sys.platform == 'linux':
 	extra_cmake_args += ["-DOpenGL_GL_PREFERENCE=LEGACY"]
 elif sys.platform == 'darwin':
 	extra_cmake_args += [f"-DCMAKE_OSX_DEPLOYMENT_TARGET={min_macos}"]
+
+if args.ccache:
+	extra_cmake_args += ['-DCMAKE_C_COMPILER_LAUNCHER=ccache', '-DCMAKE_CXX_COMPILER_LAUNCHER=ccache']
 
 configure_extra = ["--"] + extra_cmake_args if extra_cmake_args else []
 
