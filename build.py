@@ -48,6 +48,34 @@ def step(name):
 	print(f"\n=== Step: {name} ===")
 
 
+def unzip(archive: Path, destination: Path | str):
+	"""Extract a ZIP archive, keep permissions and symlinks"""
+	destination = Path(destination)
+	print(f"Extracting {archive} to {destination}...")
+	with zipfile.ZipFile(archive) as zf:
+		symlinks = []
+		ZIP_UNIX_SYSTEM = 3
+		for info in zf.infolist():
+			if info.create_system == ZIP_UNIX_SYSTEM:
+				unix_attributes = info.external_attr >> 16
+				if unix_attributes & 0o120000 == 0o120000:
+					target = zf.read(info)
+					symlinks.append((target, destination / info.filename))
+					continue
+
+			extracted_path = zf.extract(info, destination)
+
+			if info.create_system == ZIP_UNIX_SYSTEM:
+				unix_attributes = info.external_attr >> 16
+				if unix_attributes:
+					os.chmod(extracted_path, unix_attributes)
+
+	for target, link_path in symlinks:
+		link_path.parent.mkdir(parents=True, exist_ok=True)
+		link_path.unlink(missing_ok=True)
+		os.symlink(target, link_path)
+
+
 def run_checked(cmd, error_message, cwd=None, shell=False):
 	if subprocess.call(cmd, cwd=cwd, shell=shell) != 0:
 		print(error_message)
@@ -354,9 +382,8 @@ platform_name = normalized_platform()
 # Copy libclang to the build directory
 extern_libclang_artifact = Path("artifacts-extern") / "artifacts" / f"libclang_{platform_name}_{llvm_version}.zip"
 if extern_libclang_artifact.exists():
-	with zipfile.ZipFile(extern_libclang_artifact) as zf:
-		zf.extractall('build')
-		os.environ['LLVM_INSTALL_DIR'] = str((Path("build") / "libclang").resolve())
+	unzip(extern_libclang_artifact, 'build')
+	os.environ['LLVM_INSTALL_DIR'] = str((Path("build") / "libclang").resolve())
 
 if "LLVM_INSTALL_DIR" in os.environ:
 	llvm_dir = Path(os.environ["LLVM_INSTALL_DIR"]) / llvm_version
@@ -847,7 +874,10 @@ if args.pyside:
 		# Newer versions of PySide don't link to libclang in a way that works after the build, copy over
 		# the correct version of libclang
 		for f in glob.glob(os.path.join(llvm_dir, "lib", "libclang.so*")):
-			shutil.copy(f, os.path.join(pyside_install_path, "site-packages", "shiboken6_generator", os.path.basename(f)), follow_symlinks=False)
+			destination = pyside_install_path / "site-packages" / "shiboken6_generator" / os.path.basename(f)
+			# Remove the existing file because otherwise a symlink will fail to be created in its place
+			destination.unlink(missing_ok=True)
+			shutil.copy(f, destination, follow_symlinks=False)
 
 	# Add PySide installer to place it into Python path
 	shutil.copy(os.path.join(base_dir, "install_pyside_pth.py"), os.path.join(install_path, "install_pyside_pth.py"))
