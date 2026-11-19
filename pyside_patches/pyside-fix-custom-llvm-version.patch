@@ -1,0 +1,11 @@
+diff --git a/sources/shiboken6_generator/cmake/ShibokenGeneratorSetup.cmake b/sources/shiboken6_generator/cmake/ShibokenGeneratorSetup.cmake
+--- a/sources/shiboken6_generator/cmake/ShibokenGeneratorSetup.cmake
++++ b/sources/shiboken6_generator/cmake/ShibokenGeneratorSetup.cmake
+@@ -37,6 +37,6 @@
+ shiboken_internal_set_python_site_packages()
+ 
+-string(REGEX REPLACE "\\.[0-9]+\\.[0-9]+$" "" LLVM_VERSION "${LLVM_PACKAGE_VERSION}")
++string(REGEX MATCH "^[0-9]+" LLVM_VERSION "${LLVM_PACKAGE_VERSION}")
+ 
+ set_cmake_cxx_flags()
+ set(CMAKE_CXX_FLAGS

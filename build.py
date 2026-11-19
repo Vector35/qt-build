@@ -839,11 +839,25 @@ if args.pyside:
 		with open(pyside_install_path / 'site-packages' / 'shiboken6_generator' / 'shiboken6-genpyi', 'w') as genpyi_f:
 			genpyi_f.write(conts)
 
-	if sys.platform == 'linux' and llvm_dir:
-		# Newer versions of PySide don't link to libclang in a way that works after the build, copy over
-		# the correct version of libclang
-		for f in glob.glob(os.path.join(llvm_dir, "lib", "libclang.so*")):
-			shutil.copy(f, os.path.join(pyside_install_path, "site-packages", "shiboken6_generator", os.path.basename(f)), follow_symlinks=False)
+	# Copy required LLVM shared library dependencies
+	if sys.platform == 'win32':
+		llvm_library_path = os.path.join(llvm_dir, "bin")
+		llvm_library_patterns = ("LLVM*.dll",)
+	elif sys.platform == 'darwin':
+		llvm_library_path = os.path.join(llvm_dir, "lib")
+		llvm_library_patterns = ("libLLVM.dylib",)
+	elif sys.platform == 'linux':
+		llvm_library_path = os.path.join(llvm_dir, "lib")
+		llvm_library_patterns = ("libclang.so*", "libLLVM*.so*", "libclang-cpp.so*")
+
+	for pattern in llvm_library_patterns:
+		for f in glob.glob(os.path.join(llvm_library_path, pattern)):
+			target = os.path.join(pyside_install_path, "site-packages", "shiboken6_generator", os.path.basename(f))
+			# Copy symlink targets (since libLLVM may be a symlink)
+			shutil.copy(f, target)
+			# And fix rpath on Linux so it sees LLVM in the same directory
+			if sys.platform == 'linux':
+				run_checked(["patchelf", "--set-rpath", "$ORIGIN", target], f"Failed to change rpath in {target}")
 
 	# Add PySide installer to place it into Python path
 	shutil.copy(os.path.join(base_dir, "install_pyside_pth.py"), os.path.join(install_path, "install_pyside_pth.py"))
